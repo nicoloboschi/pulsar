@@ -47,7 +47,7 @@ ARG UBUNTU_MIRROR=mirror://mirrors.ubuntu.com/mirrors.txt
 RUN sed -i "s|http://archive\.ubuntu\.com/ubuntu/|${UBUNTU_MIRROR:-mirror://mirrors.ubuntu.com/mirrors.txt}|g" /etc/apt/sources.list \
      && apt-get update \
      && apt-get -y dist-upgrade \
-     && apt-get -y install --no-install-recommends openjdk-11-jdk-headless netcat dnsutils less procps iputils-ping \
+     && apt-get -y install --no-install-recommends openjdk-17-jdk-headless netcat dnsutils less procps iputils-ping \
                  python3 python3-yaml python3-kazoo python3-pip \
                  curl ca-certificates \
      && apt-get -y --purge autoremove \
@@ -57,8 +57,8 @@ RUN sed -i "s|http://archive\.ubuntu\.com/ubuntu/|${UBUNTU_MIRROR:-mirror://mirr
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
-ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64
-RUN echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/java-11-openjdk-amd64/conf/security/java.security
+ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
+RUN echo networkaddress.cache.ttl=1 >> /usr/lib/jvm/java-17-openjdk-amd64/conf/security/java.security
 ADD target/python-client/ /pulsar/pulsar-client
 
 ENV PULSAR_ROOT_LOGGER=INFO,CONSOLE
