@@ -32,7 +32,7 @@
   <groupId>org.apache.pulsar</groupId>
   <artifactId>pulsar</artifactId>
 
-  <version>2.10.0-SNAPSHOT</version>
+  <version>mod-jdk17</version>
 
   <name>Pulsar</name>
   <description>Pulsar is a distributed pub-sub messaging platform with a very
@@ -230,7 +230,7 @@ flexible messaging model and an intuitive client API.</description>
     <!-- surefire.version is defined in apache parent pom -->
     <!-- it is used for surefire, failsafe and surefire-report plugins -->
     <!-- do not upgrade surefire.version to 3.0.0-M5 since it runs slowly and breaks tests. -->
-    <surefire.version>3.0.0-M3</surefire.version>
+    <surefire.version>3.0.0-M5</surefire.version>
     <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
     <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
     <maven-modernizer-plugin.version>2.3.0</maven-modernizer-plugin.version>
@@ -1370,6 +1370,10 @@ flexible messaging model and an intuitive client API.</description>
               <name>listener</name>
               <value>org.apache.pulsar.tests.PulsarTestListener,org.apache.pulsar.tests.AnnotationListener,org.apache.pulsar.tests.FailFastNotifier,org.apache.pulsar.tests.MockitoCleanupListener,org.apache.pulsar.tests.FastThreadLocalCleanupListener,org.apache.pulsar.tests.ThreadLeakDetectorListener</value>
             </property>
+              <property>
+                <name>surefire.testng.verbose</name>
+                <value>10</value>
+              </property>
           </properties>
         </configuration>
       </plugin>
