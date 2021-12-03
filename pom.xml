@@ -1356,6 +1356,13 @@ flexible messaging model and an intuitive client API.</description>
             -Dio.netty.tryReflectionSetAccessible=true
             -da
             --add-opens java.base/java.lang=ALL-UNNAMED
+            --add-opens java.base/java.nio.file=ALL-UNNAMED
+            --add-opens java.base/java.security=ALL-UNNAMED
+            --add-opens java.base/java.net=ALL-UNNAMED
+            --add-opens java.base/java.util=ALL-UNNAMED
+            --add-opens java.base/java.util.regex=ALL-UNNAMED
+            --add-opens java.base/java.util.concurrent=ALL-UNNAMED
+            --add-opens java.base/java.nio=ALL-UNNAMED
             ${test.additional.args}
           </argLine>
           <reuseForks>${testReuseFork}</reuseForks>
