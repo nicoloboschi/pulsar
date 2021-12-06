@@ -509,18 +509,25 @@ public class SourceConfigUtils {
 
     public static void validateSourceConfig(SourceConfig sourceConfig, NarClassLoader narClassLoader) {
         try {
-            ConnectorDefinition defn = ConnectorUtils.getConnectorDefinition(narClassLoader);
-            if (defn.getSourceConfigClass() != null) {
-                Class configClass = Class.forName(defn.getSourceConfigClass(), true, narClassLoader);
-                Object configObject = ObjectMapperFactory.getThreadLocal().convertValue(sourceConfig.getConfigs(), configClass);
-                if (configObject != null) {
-                    ConfigValidation.validateConfig(configObject);
-                }
+            ConnectorDefinition connectorDefinition = ConnectorUtils.getConnectorDefinition(narClassLoader);
+            if (connectorDefinition.getSourceConfigClass() != null) {
+                Class configClass = Class.forName(connectorDefinition.getSourceConfigClass(), true, narClassLoader);
+                validateSourceConfig(sourceConfig, configClass);
             }
         } catch (IOException e) {
             throw new IllegalArgumentException("Error validating source config", e);
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("Could not find source config class");
+        }
+
+    }
+
+    public static void validateSourceConfig(SourceConfig sourceConfig, Class configClass) {
+        try {
+            Object configObject = ObjectMapperFactory.getThreadLocal().convertValue(sourceConfig.getConfigs(), configClass);
+            if (configObject != null) {
+                ConfigValidation.validateConfig(configObject);
+            }
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Could not validate source config: " + e.getMessage());
         }

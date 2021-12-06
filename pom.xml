@@ -213,7 +213,7 @@ flexible messaging model and an intuitive client API.</description>
     <kerby.version>1.1.1</kerby.version>
     <testng.version>7.3.0</testng.version>
     <junit4.version>4.13.1</junit4.version>
-    <mockito.version>3.8.0</mockito.version>
+    <mockito.version>3.12.4</mockito.version>
     <powermock.version>2.0.9</powermock.version>
     <javassist.version>3.25.0-GA</javassist.version>
     <failsafe.version>2.3.1</failsafe.version>
@@ -306,6 +306,11 @@ flexible messaging model and an intuitive client API.</description>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-inline</artifactId>
         <version>${mockito.version}</version>
       </dependency>
 
@@ -1243,6 +1248,12 @@ flexible messaging model and an intuitive client API.</description>
     </dependency>
 
     <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.powermock</groupId>
       <artifactId>powermock-api-mockito2</artifactId>
       <scope>test</scope>
@@ -1356,13 +1367,6 @@ flexible messaging model and an intuitive client API.</description>
             -Dio.netty.tryReflectionSetAccessible=true
             -da
             --add-opens java.base/java.lang=ALL-UNNAMED
-            --add-opens java.base/java.nio.file=ALL-UNNAMED
-            --add-opens java.base/java.security=ALL-UNNAMED
-            --add-opens java.base/java.net=ALL-UNNAMED
-            --add-opens java.base/java.util=ALL-UNNAMED
-            --add-opens java.base/java.util.regex=ALL-UNNAMED
-            --add-opens java.base/java.util.concurrent=ALL-UNNAMED
-            --add-opens java.base/java.nio=ALL-UNNAMED
             ${test.additional.args}
           </argLine>
           <reuseForks>${testReuseFork}</reuseForks>

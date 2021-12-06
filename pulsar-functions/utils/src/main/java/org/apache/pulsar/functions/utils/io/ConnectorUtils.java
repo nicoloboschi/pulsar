@@ -51,7 +51,7 @@ import org.apache.pulsar.io.core.annotations.FieldDoc;
 @Slf4j
 public class ConnectorUtils {
 
-    private static final String PULSAR_IO_SERVICE_NAME = "pulsar-io.yaml";
+    public static final String PULSAR_IO_SERVICE_NAME = "pulsar-io.yaml";
 
     /**
      * Extract the Pulsar IO Source class from a connector archive.
