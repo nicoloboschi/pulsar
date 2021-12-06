@@ -52,7 +52,6 @@ import org.testng.annotations.Test;
 public class TestCmdTopics {
 
     private static final String PERSISTENT_TOPIC_URL = "persistent://";
-    private static final String PERSISTENT_TOPIC_URL = "persistent://";
     private static final String PARTITIONED_TOPIC_NAME = "my-topic";
     private static final String URL_SLASH = "/";
     private PulsarAdmin pulsarAdmin;
