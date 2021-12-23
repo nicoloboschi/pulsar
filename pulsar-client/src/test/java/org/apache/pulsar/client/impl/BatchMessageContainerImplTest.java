@@ -18,38 +18,29 @@
  */
 package org.apache.pulsar.client.impl;
 
-import org.apache.bookkeeper.common.allocator.impl.ByteBufAllocatorBuilderImpl;
 import org.apache.bookkeeper.common.allocator.impl.ByteBufAllocatorImpl;
 import org.apache.pulsar.client.api.CompressionType;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
+import org.apache.pulsar.common.allocator.PulsarByteBufAllocator;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.testng.IObjectFactory;
-import org.testng.annotations.ObjectFactory;
+import org.powermock.reflect.Whitebox;
 import org.testng.annotations.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-@PrepareForTest({ByteBufAllocatorImpl.class, ByteBufAllocatorBuilderImpl.class})
-@PowerMockIgnore({"javax.management.*", "javax.ws.*", "org.apache.logging.log4j.*"})
-public class BatchMessageContainerImplTest {
+import static org.mockito.Mockito.mock;
 
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-        return new org.powermock.modules.testng.PowerMockObjectFactory();
-    }
+public class BatchMessageContainerImplTest {
 
     @Test
     public void recoveryAfterOom() throws Exception {
-        final ByteBufAllocatorImpl mockAllocator = PowerMockito.mock(ByteBufAllocatorImpl.class);
-        PowerMockito.whenNew(ByteBufAllocatorImpl.class).withAnyArguments().thenReturn(mockAllocator);
-        PowerMockito.when(mockAllocator.buffer(Mockito.anyInt(), Mockito.anyInt())).thenThrow(new OutOfMemoryError("test")).thenReturn(null);
-        final ProducerImpl producer = Mockito.mock(ProducerImpl.class);
+        final ByteBufAllocatorImpl mockAllocator = mock(ByteBufAllocatorImpl.class);
+        Whitebox.setInternalState(PulsarByteBufAllocator.class, "DEFAULT", mockAllocator);
+
+        final ProducerImpl producer = mock(ProducerImpl.class);
         final ProducerConfigurationData producerConfigurationData = new ProducerConfigurationData();
         producerConfigurationData.setCompressionType(CompressionType.NONE);
         Mockito.when(producer.getConfiguration()).thenReturn(producerConfigurationData);

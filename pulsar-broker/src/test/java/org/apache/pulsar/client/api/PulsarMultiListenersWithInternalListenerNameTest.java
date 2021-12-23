@@ -136,16 +136,16 @@ public class PulsarMultiListenersWithInternalListenerNameTest extends MockedPuls
             CompletableFuture<Pair<InetSocketAddress, InetSocketAddress>> future =
                     lookupService.getBroker(TopicName.get("persistent://public/default/test"));
             Pair<InetSocketAddress, InetSocketAddress> result = future.get(10, TimeUnit.SECONDS);
-            Assert.assertEquals(result.getKey().toString(), hostAndBrokerPort);
-            Assert.assertEquals(result.getValue().toString(), hostAndBrokerPort);
+            Assert.assertEquals(unresolvedSocketAddressToString(result.getKey()), hostAndBrokerPort);
+            Assert.assertEquals(unresolvedSocketAddressToString(result.getValue()), hostAndBrokerPort);
         }
         // test request 2
         {
             CompletableFuture<Pair<InetSocketAddress, InetSocketAddress>> future =
                     lookupService.getBroker(TopicName.get("persistent://public/default/test"));
             Pair<InetSocketAddress, InetSocketAddress> result = future.get(10, TimeUnit.SECONDS);
-            Assert.assertEquals(result.getKey().toString(), hostAndBrokerPort);
-            Assert.assertEquals(result.getValue().toString(), hostAndBrokerPort);
+            Assert.assertEquals(unresolvedSocketAddressToString(result.getKey()), hostAndBrokerPort);
+            Assert.assertEquals(unresolvedSocketAddressToString(result.getValue()), hostAndBrokerPort);
         }
     }
 
@@ -182,8 +182,8 @@ public class PulsarMultiListenersWithInternalListenerNameTest extends MockedPuls
                 lookupService.getBroker(TopicName.get("persistent://public/default/test"));
 
         Pair<InetSocketAddress, InetSocketAddress> result = future.get(10, TimeUnit.SECONDS);
-        Assert.assertEquals(result.getKey().toString(), address);
-        Assert.assertEquals(result.getValue().toString(), address);
+        Assert.assertEquals(unresolvedSocketAddressToString(result.getKey()), address);
+        Assert.assertEquals(unresolvedSocketAddressToString(result.getValue()), address);
     }
 
     @AfterMethod(alwaysRun = true)
@@ -197,5 +197,12 @@ public class PulsarMultiListenersWithInternalListenerNameTest extends MockedPuls
         }
         super.internalCleanup();
     }
+    /**
+     * Since JDK12+ the {@link InetSocketAddress#toString()} add &lt;unresolved&gt; to the address (if unresolved).
+     */
+    private static String unresolvedSocketAddressToString(InetSocketAddress address) {
+        return address.getHostString() + ":" + address.getPort();
+    }
+
 
 }

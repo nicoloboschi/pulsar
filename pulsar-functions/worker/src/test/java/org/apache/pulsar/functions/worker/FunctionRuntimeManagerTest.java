@@ -216,7 +216,7 @@ public class FunctionRuntimeManagerTest {
 
         mockStatic(RuntimeFactory.class);
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-            .thenReturn(new ThreadRuntimeFactory());
+            .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
 
         // test new assignment delete functions
         FunctionRuntimeManager functionRuntimeManager = spy(new FunctionRuntimeManager(

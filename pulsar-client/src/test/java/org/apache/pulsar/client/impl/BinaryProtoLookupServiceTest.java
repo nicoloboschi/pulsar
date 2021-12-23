@@ -81,8 +81,8 @@ public class BinaryProtoLookupServiceTest {
     @Test(invocationTimeOut = 3000)
     public void maxLookupRedirectsTest1() throws Exception {
         Pair<InetSocketAddress, InetSocketAddress> addressPair = lookup.getBroker(topicName).get();
-        assertEquals(addressPair.getLeft().toString(), "broker2.pulsar.apache.org:6650");
-        assertEquals(addressPair.getRight().toString(), "broker2.pulsar.apache.org:6650");
+        assertEquals(unresolvedSocketAddressToString(addressPair.getLeft()), "broker2.pulsar.apache.org:6650");
+        assertEquals(unresolvedSocketAddressToString(addressPair.getRight()), "broker2.pulsar.apache.org:6650");
     }
 
     @Test(invocationTimeOut = 3000)
@@ -92,8 +92,8 @@ public class BinaryProtoLookupServiceTest {
         field.set(lookup, 2);
 
         Pair<InetSocketAddress, InetSocketAddress> addressPair = lookup.getBroker(topicName).get();
-        assertEquals(addressPair.getLeft().toString(), "broker2.pulsar.apache.org:6650");
-        assertEquals(addressPair.getRight().toString(), "broker2.pulsar.apache.org:6650");
+        assertEquals(unresolvedSocketAddressToString(addressPair.getLeft()), "broker2.pulsar.apache.org:6650");
+        assertEquals(unresolvedSocketAddressToString(addressPair.getRight()), "broker2.pulsar.apache.org:6650");
     }
 
     @Test(invocationTimeOut = 3000)
@@ -124,5 +124,12 @@ public class BinaryProtoLookupServiceTest {
         redirectField.set(lookupResult, redirect);
 
         return lookupResult;
+    }
+
+    /**
+     * Since JDK12+ the {@link InetSocketAddress#toString()} add &lt;unresolved&gt; to the address (if unresolved).
+     */
+    private static String unresolvedSocketAddressToString(InetSocketAddress address) {
+        return address.getHostString() + ":" + address.getPort();
     }
 }

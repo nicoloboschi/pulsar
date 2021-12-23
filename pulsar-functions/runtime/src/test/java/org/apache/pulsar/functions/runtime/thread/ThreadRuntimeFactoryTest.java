@@ -34,6 +34,7 @@ import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.reflect.Whitebox;
 import org.testng.IObjectFactory;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
@@ -41,7 +42,7 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.Optional;
 
-@PrepareForTest({InstanceUtils.class, PulsarClient.class, PlatformDependent.class})
+@PrepareForTest({InstanceUtils.class, PulsarClient.class})
 @PowerMockIgnore({ "javax.management.*", "javax.ws.*", "org.apache.logging.log4j.*"})
 @Slf4j
 public class ThreadRuntimeFactoryTest {
@@ -113,12 +114,10 @@ public class ThreadRuntimeFactoryTest {
 
     private ClientBuilder testMemoryLimit(Long absolute, Double percent) throws Exception {
         PowerMockito.mockStatic(PulsarClient.class);
-        PowerMockito.mockStatic(PlatformDependent.class);
-
-        PowerMockito.when(PlatformDependent.maxDirectMemory()).thenReturn(1024L);
+        Whitebox.setInternalState(PlatformDependent.class, "DIRECT_MEMORY_LIMIT", 1024L);
 
         ClientBuilder clientBuilder = Mockito.mock(ClientBuilder.class);
-        PowerMockito.when(PulsarClient.builder()).thenReturn(clientBuilder);
+        PowerMockito.when(PulsarClient.builder()).thenAnswer(i -> clientBuilder);
         PowerMockito.when(PulsarClient.builder().serviceUrl(Mockito.anyString())).thenReturn(clientBuilder);
 
 
