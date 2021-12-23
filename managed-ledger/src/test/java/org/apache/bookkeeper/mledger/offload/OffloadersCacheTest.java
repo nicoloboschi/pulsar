@@ -44,7 +44,7 @@ public class OffloadersCacheTest {
 
         PowerMockito.mockStatic(OffloaderUtils.class);
         PowerMockito.when(OffloaderUtils.searchForOffloaders(eq("./offloaders"), eq("/tmp")))
-                .thenReturn(expectedOffloaders);
+                .thenAnswer(i -> expectedOffloaders);
 
         OffloadersCache cache = new OffloadersCache();
 

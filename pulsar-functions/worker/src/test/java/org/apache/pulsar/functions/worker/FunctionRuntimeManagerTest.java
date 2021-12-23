@@ -127,7 +127,7 @@ public class FunctionRuntimeManagerTest {
 
         mockStatic(RuntimeFactory.class);
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-            .thenReturn(new ThreadRuntimeFactory());
+            .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
 
         // test new assignment add functions
         FunctionRuntimeManager functionRuntimeManager = spy(new FunctionRuntimeManager(
@@ -308,7 +308,7 @@ public class FunctionRuntimeManagerTest {
 
         mockStatic(RuntimeFactory.class);
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-            .thenReturn(new ThreadRuntimeFactory());
+            .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
 
         // test new assignment update functions
         FunctionRuntimeManager functionRuntimeManager = new FunctionRuntimeManager(
@@ -444,7 +444,7 @@ public class FunctionRuntimeManagerTest {
 
         mockStatic(RuntimeFactory.class);
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-            .thenReturn(new ThreadRuntimeFactory());
+            .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
 
         // test new assignment update functions
         FunctionRuntimeManager functionRuntimeManager = new FunctionRuntimeManager(
@@ -636,7 +636,7 @@ public class FunctionRuntimeManagerTest {
 
         mockStatic(RuntimeFactory.class);
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-            .thenReturn(new ThreadRuntimeFactory());
+            .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
 
         // test new assignment add functions
         FunctionRuntimeManager functionRuntimeManager = new FunctionRuntimeManager(
@@ -721,7 +721,7 @@ public class FunctionRuntimeManagerTest {
 
         mockStatic(RuntimeFactory.class);
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(anyString()))
-            .thenReturn(kubernetesRuntimeFactory);
+            .thenAnswer(i -> kubernetesRuntimeFactory);
 
         // test new assignment update functions
         FunctionRuntimeManager functionRuntimeManager = new FunctionRuntimeManager(
@@ -911,7 +911,7 @@ public class FunctionRuntimeManagerTest {
 
             mockStatic(RuntimeFactory.class);
             PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-                .thenReturn(new ThreadRuntimeFactory());
+                .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
 
             FunctionRuntimeManager functionRuntimeManager = new FunctionRuntimeManager(
                     workerConfig,
@@ -1063,7 +1063,7 @@ public class FunctionRuntimeManagerTest {
         workerInfos.add(WorkerInfo.of("worker-1", "localhost", 0));
         workerInfos.add(WorkerInfo.of("worker-2", "localhost", 0));
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-                .thenReturn(new ThreadRuntimeFactory());
+                .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
         MembershipManager membershipManager = mock(MembershipManager.class);
         doReturn(workerInfos).when(membershipManager).getCurrentMembership();
 
@@ -1144,7 +1144,7 @@ public class FunctionRuntimeManagerTest {
         workerInfos.add(WorkerInfo.of("worker-1", "localhost", 0));
         workerInfos.add(WorkerInfo.of("worker-2", "localhost", 0));
         PowerMockito.when(RuntimeFactory.getFuntionRuntimeFactory(eq(ThreadRuntimeFactory.class.getName())))
-                .thenReturn(new ThreadRuntimeFactory());
+                .thenAnswer((Answer<ThreadRuntimeFactory>) invocation -> new ThreadRuntimeFactory());
         MembershipManager membershipManager = mock(MembershipManager.class);
         doReturn(workerInfos).when(membershipManager).getCurrentMembership();
 

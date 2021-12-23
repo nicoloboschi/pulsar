@@ -99,9 +99,9 @@
 
         <dependency>
             <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-rules</artifactId>
+            <artifactId>system-lambda</artifactId>
+            <version>1.2.0</version>
             <scope>test</scope>
-            <version>1.17.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
