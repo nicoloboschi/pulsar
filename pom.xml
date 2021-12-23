@@ -1359,14 +1359,16 @@ flexible messaging model and an intuitive client API.</description>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <!-- add-opens java.base/java.lang=ALL-UNNAMED for enabling PowerMockito -->
+          <!-- add-opens java.base/java.io=ALL-UNNAMED for BookKeeper org.apache.bookkeeper.util.NativeIO -->
           <argLine> -Xmx1G -XX:+UseG1GC
             -Dpulsar.allocator.pooled=true
             -Dpulsar.allocator.leak_detection=Advanced
             -Dpulsar.allocator.exit_on_oom=false
             -Dpulsar.allocator.out_of_memory_policy=FallbackToHeap
             -Dio.netty.tryReflectionSetAccessible=true
-            -da
             --add-opens java.base/java.lang=ALL-UNNAMED
+            --add-opens java.base/java.io=ALL-UNNAMED
             ${test.additional.args}
           </argLine>
           <reuseForks>${testReuseFork}</reuseForks>
