@@ -33,6 +33,8 @@ import java.nio.file.Paths;
 import java.util.Set;
 import org.apache.pulsar.common.nar.NarClassLoader;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -72,19 +74,20 @@ public class ProtocolHandlerUtilsTest {
         when(mockLoader.loadClass(eq(MockProtocolHandler.class.getName())))
             .thenReturn(handlerClass);
 
-        PowerMockito.mockStatic(NarClassLoader.class);
-        PowerMockito.when(NarClassLoader.getFromArchive(
-            any(File.class),
-            any(Set.class),
-            any(ClassLoader.class),
-            any(String.class)
-        )).thenReturn(mockLoader);
+        try (MockedStatic<NarClassLoader.Factory> factory = Mockito.mockStatic(NarClassLoader.Factory.class)) {
+            factory.when(() -> NarClassLoader.Factory.getFromArchive(
+                    any(File.class),
+                    any(Set.class),
+                    any(ClassLoader.class),
+                    any(String.class)
+            )).thenReturn(mockLoader);
 
-        ProtocolHandlerWithClassLoader returnedPhWithCL = ProtocolHandlerUtils.load(metadata, "");
-        ProtocolHandler returnedPh = returnedPhWithCL.getHandler();
+            ProtocolHandlerWithClassLoader returnedPhWithCL = ProtocolHandlerUtils.load(metadata, "");
+            ProtocolHandler returnedPh = returnedPhWithCL.getHandler();
 
-        assertSame(mockLoader, returnedPhWithCL.getClassLoader());
-        assertTrue(returnedPh instanceof MockProtocolHandler);
+            assertSame(mockLoader, returnedPhWithCL.getClassLoader());
+            assertTrue(returnedPh instanceof MockProtocolHandler);
+        }
     }
 
     @Test
@@ -105,19 +108,20 @@ public class ProtocolHandlerUtilsTest {
         when(mockLoader.loadClass(eq(MockProtocolHandler.class.getName())))
             .thenReturn(handlerClass);
 
-        PowerMockito.mockStatic(NarClassLoader.class);
-        PowerMockito.when(NarClassLoader.getFromArchive(
-            any(File.class),
-            any(Set.class),
-            any(ClassLoader.class),
-            any(String.class)
-        )).thenReturn(mockLoader);
+        try (MockedStatic<NarClassLoader.Factory> factory = Mockito.mockStatic(NarClassLoader.Factory.class)) {
+            factory.when(() -> NarClassLoader.Factory.getFromArchive(
+                    any(File.class),
+                    any(Set.class),
+                    any(ClassLoader.class),
+                    any(String.class)
+            )).thenReturn(mockLoader);
 
-        try {
-            ProtocolHandlerUtils.load(metadata, "");
-            fail("Should not reach here");
-        } catch (IOException ioe) {
-            // expected
+            try {
+                ProtocolHandlerUtils.load(metadata, "");
+                fail("Should not reach here");
+            } catch (IOException ioe) {
+                // expected
+            }
         }
     }
 
@@ -139,20 +143,20 @@ public class ProtocolHandlerUtilsTest {
         Class handlerClass = Runnable.class;
         when(mockLoader.loadClass(eq(Runnable.class.getName())))
             .thenReturn(handlerClass);
+        try (MockedStatic<NarClassLoader.Factory> factory = Mockito.mockStatic(NarClassLoader.Factory.class)) {
+            factory.when(() -> NarClassLoader.Factory.getFromArchive(
+                    any(File.class),
+                    any(Set.class),
+                    any(ClassLoader.class),
+                    any(String.class)
+            )).thenReturn(mockLoader);
 
-        PowerMockito.mockStatic(NarClassLoader.class);
-        PowerMockito.when(NarClassLoader.getFromArchive(
-            any(File.class),
-            any(Set.class),
-            any(ClassLoader.class),
-            any(String.class)
-        )).thenReturn(mockLoader);
-
-        try {
-            ProtocolHandlerUtils.load(metadata, "");
-            fail("Should not reach here");
-        } catch (IOException ioe) {
-            // expected
+            try {
+                ProtocolHandlerUtils.load(metadata, "");
+                fail("Should not reach here");
+            } catch (IOException ioe) {
+                // expected
+            }
         }
     }
 

@@ -448,7 +448,8 @@ public class FunctionRuntimeManager implements AutoCloseable{
     /**
      * Restart the entire function or restart a single instance of the function
      */
-    private void restartFunctionUsingPulsarAdmin(Assignment assignment, String tenant, String namespace,
+    @VisibleForTesting
+    public void restartFunctionUsingPulsarAdmin(Assignment assignment, String tenant, String namespace,
              String functionName, boolean restartEntireFunction) throws PulsarAdminException {
         ComponentType componentType = assignment.getInstance().getFunctionMetaData().getFunctionDetails().getComponentType();
         if (restartEntireFunction) {
@@ -500,8 +501,8 @@ public class FunctionRuntimeManager implements AutoCloseable{
             });
         }
     }
-
-    private void stopFunction(String fullyQualifiedInstanceId, boolean restart) throws Exception {
+    @VisibleForTesting
+    public void stopFunction(String fullyQualifiedInstanceId, boolean restart) throws Exception {
         log.info("[{}] {}..", restart ? "restarting" : "stopping", fullyQualifiedInstanceId);
         FunctionRuntimeInfo functionRuntimeInfo = this.getFunctionRuntimeInfo(fullyQualifiedInstanceId);
         if (functionRuntimeInfo != null) {

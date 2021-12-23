@@ -23,6 +23,7 @@
  */
 package org.apache.pulsar.common.nar;
 
+import lombok.Builder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -129,6 +130,23 @@ import java.util.Set;
 @Slf4j
 public class NarClassLoader extends URLClassLoader {
 
+    public static class Factory {
+
+        public static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars,
+                                                    String narExtractionDirectory) throws IOException {
+            return NarClassLoader.getFromArchive(narPath, additionalJars, narExtractionDirectory);
+        }
+
+        public static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars) throws IOException {
+            return NarClassLoader.getFromArchive(narPath, additionalJars);
+        }
+        public static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars, ClassLoader parent,
+                                                    String narExtractionDirectory)
+                throws IOException {
+            return NarClassLoader.getFromArchive(narPath, additionalJars, parent, narExtractionDirectory);
+        }
+    }
+
     private static final FileFilter JAR_FILTER = pathname -> {
         final String nameToTest = pathname.getName().toLowerCase();
         return nameToTest.endsWith(".jar") && pathname.isFile();
@@ -143,17 +161,17 @@ public class NarClassLoader extends URLClassLoader {
 
     public static final String DEFAULT_NAR_EXTRACTION_DIR = System.getProperty("java.io.tmpdir");
 
-    public static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars,
+    private static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars,
                                                 String narExtractionDirectory) throws IOException {
         return  NarClassLoader.getFromArchive(narPath, additionalJars, NarClassLoader.class.getClassLoader(),
                                                 narExtractionDirectory);
     }
 
-    public static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars) throws IOException {
+    private static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars) throws IOException {
         return NarClassLoader.getFromArchive(narPath, additionalJars, NarClassLoader.DEFAULT_NAR_EXTRACTION_DIR);
     }
 
-    public static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars, ClassLoader parent,
+    private static NarClassLoader getFromArchive(File narPath, Set<String> additionalJars, ClassLoader parent,
                                                 String narExtractionDirectory)
         throws IOException {
         File unpacked = NarUnpacker.unpackNar(narPath, getNarExtractionDirectory(narExtractionDirectory));

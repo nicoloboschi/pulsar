@@ -20,11 +20,8 @@ package org.apache.pulsar.proxy.extensions;
 
 import org.apache.pulsar.common.nar.NarClassLoader;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.testng.IObjectFactory;
-import org.testng.annotations.ObjectFactory;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -41,18 +38,9 @@ import static org.testng.AssertJUnit.assertSame;
 import static org.testng.AssertJUnit.assertTrue;
 import static org.testng.AssertJUnit.fail;
 
-@PrepareForTest({
-    ProxyExtensionsUtils.class, NarClassLoader.class
-})
-@PowerMockIgnore({"org.apache.logging.log4j.*"})
 @Test(groups = "broker")
 public class ProxyExtensionUtilsTest {
 
-    // Necessary to make PowerMockito.mockStatic work with TestNG.
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-        return new org.powermock.modules.testng.PowerMockObjectFactory();
-    }
 
     @Test
     public void testLoadProtocolHandler() throws Exception {
@@ -73,19 +61,22 @@ public class ProxyExtensionUtilsTest {
         when(mockLoader.loadClass(eq(MockProxyExtension.class.getName())))
             .thenReturn(handlerClass);
 
-        PowerMockito.mockStatic(NarClassLoader.class);
-        PowerMockito.when(NarClassLoader.getFromArchive(
-            any(File.class),
-            any(Set.class),
-            any(ClassLoader.class),
-            any(String.class)
-        )).thenReturn(mockLoader);
 
-        ProxyExtensionWithClassLoader returnedPhWithCL = ProxyExtensionsUtils.load(metadata, "");
-        ProxyExtension returnedPh = returnedPhWithCL.getExtension();
+        try (MockedStatic<NarClassLoader.Factory> factoryMockedStatic = Mockito.mockStatic(NarClassLoader.Factory.class)) {
+            factoryMockedStatic.when(() -> NarClassLoader.Factory.getFromArchive(
+                    any(File.class),
+                    any(Set.class),
+                    any(ClassLoader.class),
+                    any(String.class)
+            )).thenReturn(mockLoader);
 
-        assertSame(mockLoader, returnedPhWithCL.getClassLoader());
-        assertTrue(returnedPh instanceof MockProxyExtension);
+
+            ProxyExtensionWithClassLoader returnedPhWithCL = ProxyExtensionsUtils.load(metadata, "");
+            ProxyExtension returnedPh = returnedPhWithCL.getExtension();
+
+            assertSame(mockLoader, returnedPhWithCL.getClassLoader());
+            assertTrue(returnedPh instanceof MockProxyExtension);
+        }
     }
 
     @Test
@@ -106,19 +97,20 @@ public class ProxyExtensionUtilsTest {
         when(mockLoader.loadClass(eq(MockProxyExtension.class.getName())))
             .thenReturn(handlerClass);
 
-        PowerMockito.mockStatic(NarClassLoader.class);
-        PowerMockito.when(NarClassLoader.getFromArchive(
-            any(File.class),
-            any(Set.class),
-            any(ClassLoader.class),
-            any(String.class)
-        )).thenReturn(mockLoader);
+        try (MockedStatic<NarClassLoader.Factory> factoryMockedStatic = Mockito.mockStatic(NarClassLoader.Factory.class)) {
+            factoryMockedStatic.when(() -> NarClassLoader.Factory.getFromArchive(
+                    any(File.class),
+                    any(Set.class),
+                    any(ClassLoader.class),
+                    any(String.class)
+            )).thenReturn(mockLoader);
 
-        try {
-            ProxyExtensionsUtils.load(metadata, "");
-            fail("Should not reach here");
-        } catch (IOException ioe) {
-            // expected
+            try {
+                ProxyExtensionsUtils.load(metadata, "");
+                fail("Should not reach here");
+            } catch (IOException ioe) {
+                // expected
+            }
         }
     }
 
@@ -141,19 +133,20 @@ public class ProxyExtensionUtilsTest {
         when(mockLoader.loadClass(eq(Runnable.class.getName())))
             .thenReturn(handlerClass);
 
-        PowerMockito.mockStatic(NarClassLoader.class);
-        PowerMockito.when(NarClassLoader.getFromArchive(
-            any(File.class),
-            any(Set.class),
-            any(ClassLoader.class),
-            any(String.class)
-        )).thenReturn(mockLoader);
+        try (MockedStatic<NarClassLoader.Factory> factory = Mockito.mockStatic(NarClassLoader.Factory.class)) {
+            factory.when(() -> NarClassLoader.Factory.getFromArchive(
+                    any(File.class),
+                    any(Set.class),
+                    any(ClassLoader.class),
+                    any(String.class)
+            )).thenReturn(mockLoader);
 
-        try {
-            ProxyExtensionsUtils.load(metadata, "");
-            fail("Should not reach here");
-        } catch (IOException ioe) {
-            // expected
+            try {
+                ProxyExtensionsUtils.load(metadata, "");
+                fail("Should not reach here");
+            } catch (IOException ioe) {
+                // expected
+            }
         }
     }
 
