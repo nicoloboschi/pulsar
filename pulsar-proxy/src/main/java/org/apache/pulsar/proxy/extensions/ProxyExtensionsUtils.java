@@ -117,10 +117,10 @@ class ProxyExtensionsUtils {
      */
     static ProxyExtensionWithClassLoader load(ProxyExtensionMetadata metadata,
                                               String narExtractionDirectory) throws IOException {
-        NarClassLoader ncl = NarClassLoader.NarClassLoaderFactory.fromArchive(
-                metadata.getArchivePath().toAbsolutePath().toFile(),
-                Collections.emptySet(),
-                ProxyExtension.class.getClassLoader(), narExtractionDirectory);
+        NarClassLoader ncl = NarClassLoader.getFromArchive(
+            metadata.getArchivePath().toAbsolutePath().toFile(),
+            Collections.emptySet(),
+            ProxyExtension.class.getClassLoader(), narExtractionDirectory);
 
         ProxyExtensionDefinition phDef = getProxyExtensionDefinition(ncl);
         if (StringUtils.isBlank(phDef.getExtensionClass())) {
