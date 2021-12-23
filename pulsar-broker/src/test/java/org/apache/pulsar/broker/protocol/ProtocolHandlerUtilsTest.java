@@ -35,25 +35,10 @@ import org.apache.pulsar.common.nar.NarClassLoader;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.testng.IObjectFactory;
-import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
 
-@PrepareForTest({
-    ProtocolHandlerUtils.class, NarClassLoader.class
-})
-@PowerMockIgnore({"org.apache.logging.log4j.*"})
 @Test(groups = "broker")
 public class ProtocolHandlerUtilsTest {
-
-    // Necessary to make PowerMockito.mockStatic work with TestNG.
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-        return new org.powermock.modules.testng.PowerMockObjectFactory();
-    }
 
     @Test
     public void testLoadProtocolHandler() throws Exception {
