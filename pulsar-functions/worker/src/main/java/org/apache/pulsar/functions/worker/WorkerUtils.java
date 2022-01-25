@@ -178,7 +178,7 @@ public final class WorkerUtils {
             ledgersRootPath = metadataServiceUri.getPath();
         }
         log.info("initializeDlogNamespace zookeeperServers:" + zookeeperServers + " ledgersRootPath: "
-                + ledgersRootPath + " ledgersStoreServers:" + ledgersStoreServers);
+                + ledgersRootPath + " ledgersStoreServers:" + ledgersStoreServers + ", conf was: " + internalConf);
         BKDLConfig dlConfig = new BKDLConfig(ledgersStoreServers, ledgersRootPath);
         DLMetadata dlMetadata = DLMetadata.create(dlConfig);
 
