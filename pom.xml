@@ -1401,6 +1401,29 @@ flexible messaging model and an intuitive client API.</description>
         </configuration>
       </plugin>
       <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <propertyName>surefire.argLine</propertyName>
+            </configuration>
+          </execution>
+          <!-- attached to Maven test phase -->
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
@@ -1411,6 +1434,7 @@ flexible messaging model and an intuitive client API.</description>
             -Dpulsar.allocator.out_of_memory_policy=FallbackToHeap
             -Dio.netty.tryReflectionSetAccessible=true
             ${test.additional.args}
+            ${surefire.argLine}
           </argLine>
           <reuseForks>${testReuseFork}</reuseForks>
           <forkCount>${testForkCount}</forkCount>
