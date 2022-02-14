@@ -1418,7 +1418,7 @@ flexible messaging model and an intuitive client API.</description>
             <id>report</id>
             <phase>test</phase>
             <goals>
-              <goal>report</goal>
+              <goal>report-aggregate</goal>
             </goals>
           </execution>
         </executions>
