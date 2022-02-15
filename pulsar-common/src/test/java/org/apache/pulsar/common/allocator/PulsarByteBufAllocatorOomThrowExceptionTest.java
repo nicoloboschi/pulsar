@@ -26,6 +26,7 @@ import org.apache.bookkeeper.common.allocator.PoolingPolicy;
 import org.apache.bookkeeper.common.allocator.impl.ByteBufAllocatorImpl;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.testng.annotations.Test;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class PulsarByteBufAllocatorOomThrowExceptionTest {
         AtomicBoolean called = new AtomicBoolean();
         System.setProperty("pulsar.allocator.out_of_memory_policy", "ThrowException");
         try (MockedConstruction<ByteBufAllocatorImpl> mocked = Mockito.mockConstruction(ByteBufAllocatorImpl.class,
+                Mockito.withSettings().defaultAnswer(InvocationOnMock::callRealMethod),
                 (mock, context) -> {
                     called.set(true);
                     final List<?> arguments = context.arguments();
