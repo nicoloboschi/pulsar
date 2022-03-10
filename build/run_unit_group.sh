@@ -132,7 +132,6 @@ function test_group_proxy() {
     echo "::endgroup::"
 }
 
-<<<<<<< HEAD
 function test_group_other() {
   mvn_test --install -PbrokerSkipTest \
            -Dexclude='org/apache/pulsar/proxy/**/*.java,
@@ -140,16 +139,6 @@ function test_group_other() {
                   **/TestPulsarKeyValueSchemaHandler.java,
                   **/PrimitiveSchemaTest.java,
                   BlobStoreManagedLedgerOffloaderTest.java'
-=======
-function other() {
-  $MVN_COMMAND_WITH_RETRY clean install -PbrokerSkipTest,coverage \
-                                     -Dexclude='org/apache/pulsar/proxy/**/*.java,
-                                                **/ManagedLedgerTest.java,
-                                                **/TestPulsarKeyValueSchemaHandler.java,
-                                                **/PrimitiveSchemaTest.java,
-                                                BlobStoreManagedLedgerOffloaderTest.java,
-                                                **/ManagedLedgerFactoryShutdownTest.java'
->>>>>>> d81860fbc2c (Jacoco - Codecov.io integration)
 
   mvn_test -pl managed-ledger -Dinclude='**/ManagedLedgerTest.java,
                                                   **/OffloadersCacheTest.java'
