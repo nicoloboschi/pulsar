@@ -117,11 +117,11 @@ public abstract class RestClient implements Closeable {
             builder.setMaxConnPerRoute(config.getBulkConcurrentRequests());
             builder.setMaxConnTotal(config.getBulkConcurrentRequests());
             builder.setConnectionManager(connectionManager);
+
             if (this.credentialsProvider != null) {
                 builder.setDefaultCredentialsProvider(credentialsProvider);
             }
             if (defaultHeaders != null) {
-                System.out.println("setting defaultHeaders " + defaultHeaders.get(0).getName() + ": " + defaultHeaders.get(0).getValue());
                 builder.setDefaultHeaders(defaultHeaders);
             }
             return builder;
@@ -197,7 +197,6 @@ public abstract class RestClient implements Closeable {
         }
 
         private List<Header> buildDefaultHeaders(ElasticSearchConfig config) {
-            System.out.println("buildDefaultHeaders" + config);
             if (StringUtils.isEmpty(config.getToken()) && StringUtils.isEmpty(config.getApiKey())) {
                 return null;
             }
