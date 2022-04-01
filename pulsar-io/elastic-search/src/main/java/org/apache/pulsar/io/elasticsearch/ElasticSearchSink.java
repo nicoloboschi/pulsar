@@ -231,7 +231,7 @@ public class ElasticSearchSink implements Sink<GenericObject> {
                 return (String) val;
             case JSON:
             case AVRO:
-                return stringifyKey(extractJsonNode(schema, val));
+                return stringifyKey(extractJsonNode(elasticSearchConfig, schema, val));
             default:
                 throw new UnsupportedOperationException("Unsupported key schemaType="
                         + schema.getSchemaInfo().getType());
@@ -260,7 +260,7 @@ public class ElasticSearchSink implements Sink<GenericObject> {
     }
 
     public String stringifyValue(Schema<?> schema, Object val) throws JsonProcessingException {
-        JsonNode jsonNode = extractJsonNode(schema, val);
+        JsonNode jsonNode = extractJsonNode(elasticSearchConfig, schema, val);
         return elasticSearchConfig.isStripNulls()
                 ? objectMapper.writeValueAsString(stripNullNodes(jsonNode))
                 : objectMapper.writeValueAsString(jsonNode);
@@ -279,14 +279,15 @@ public class ElasticSearchSink implements Sink<GenericObject> {
         return node;
     }
 
-    public static JsonNode extractJsonNode(Schema<?> schema, Object val) {
+    public static JsonNode extractJsonNode(ElasticSearchConfig elasticSearchConfig, Schema<?> schema, Object val) {
+        if (val == null)
+            return null;
         switch (schema.getSchemaInfo().getType()) {
             case JSON:
                 return (JsonNode) ((GenericRecord) val).getNativeObject();
             case AVRO:
-                org.apache.avro.generic.GenericRecord node = (org.apache.avro.generic.GenericRecord)
-                        ((GenericRecord) val).getNativeObject();
-                return JsonConverter.toJson(node);
+                org.apache.avro.generic.GenericRecord node = (org.apache.avro.generic.GenericRecord) ((GenericObject) val).getNativeObject();
+                return JsonConverter.toJson(elasticSearchConfig, node);
             default:
                 throw new UnsupportedOperationException("Unsupported value schemaType="
                         + schema.getSchemaInfo().getType());

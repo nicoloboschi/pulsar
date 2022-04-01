@@ -258,6 +258,13 @@ public class ElasticSearchConfig implements Serializable {
     )
     private CompatibilityMode compatibilityMode = CompatibilityMode.AUTO;
 
+    @FieldDoc(
+            required = false,
+            defaultValue = "false",
+            help = "If ignoreUnsupportedFields is true, unsupported AVRO fields are nullified and AVRO logical types are decoded as known AVRO types, otherwise it fails."
+    )
+    private boolean ignoreUnsupportedFields = false;
+
     public enum MalformedDocAction {
         IGNORE,
         WARN,
