@@ -112,7 +112,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=pulsar-nicolo
+        run: mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=pulsar-nicolo -Pcore-modules,-main -DskipTests -Dlicense.skip=true -Drat.skip=true
 
       - name: Check binary licenses
         if: ${{ needs.changed_files_job.outputs.docs_only != 'true' }}
