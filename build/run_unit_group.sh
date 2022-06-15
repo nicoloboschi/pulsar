@@ -28,7 +28,7 @@ MVN_TEST_OPTIONS='mvn -B -ntp -DskipSourceReleaseAssembly=true -DskipBuildDistri
 
 function mvn_test() {
   (
-    RETRY="${SCRIPT_DIR}/retry.sh"
+    RETRY=""
     # skip wrapping with retry.sh script if next parameter is "--no-retry"
     if [[ "$1" == "--no-retry" ]]; then
       RETRY=""
