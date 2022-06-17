@@ -51,6 +51,7 @@ import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.MessageListener;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SizeUnit;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.api.transaction.Transaction;
@@ -150,7 +151,7 @@ public class PerformanceConsumer {
 
         @Parameter(names = { "-c",
                 "--max-connections" }, description = "Max number of TCP connections to a single broker")
-        public int maxConnections = 100;
+        public int maxConnections = 1;
 
         @Parameter(names = { "-i",
                 "--stats-interval-seconds" },
@@ -356,6 +357,7 @@ public class PerformanceConsumer {
         long testEndTime = startTime + (long) (arguments.testTime * 1e9);
 
         ClientBuilder clientBuilder = PulsarClient.builder() //
+                .memoryLimit(0, SizeUnit.BYTES)
                 .enableTransaction(arguments.isEnableTransaction)
                 .serviceUrl(arguments.serviceURL) //
                 .connectionsPerBroker(arguments.maxConnections) //

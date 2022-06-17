@@ -68,6 +68,7 @@ import org.apache.pulsar.client.api.ProducerAccessMode;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.SizeUnit;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
@@ -182,7 +183,7 @@ public class PerformanceProducer {
 
         @Parameter(names = { "-c",
                 "--max-connections" }, description = "Max number of TCP connections to a single broker")
-        public int maxConnections = 100;
+        public int maxConnections = 1;
 
         @Parameter(names = { "-m",
                 "--num-messages" }, description = "Number of messages to publish in total. If <= 0, it will keep "
@@ -572,6 +573,7 @@ public class PerformanceProducer {
             List<Future<Producer<byte[]>>> futures = new ArrayList<>();
 
             ClientBuilder clientBuilder = PulsarClient.builder() //
+                    .memoryLimit(0, SizeUnit.BYTES)
                     .enableTransaction(arguments.isEnableTransaction)//
                     .serviceUrl(arguments.serviceURL) //
                     .connectionsPerBroker(arguments.maxConnections) //
@@ -597,10 +599,12 @@ public class PerformanceProducer {
                     .sendTimeout(arguments.sendTimeout, TimeUnit.SECONDS) //
                     .compressionType(arguments.compression) //
                     .maxPendingMessages(arguments.maxOutstanding) //
-                    .maxPendingMessagesAcrossPartitions(arguments.maxPendingMessagesAcrossPartitions)
                     .accessMode(arguments.producerAccessMode)
                     // enable round robin message routing if it is a partitioned topic
                     .messageRoutingMode(MessageRoutingMode.RoundRobinPartition);
+            if (arguments.maxPendingMessagesAcrossPartitions > 0) {
+                producerBuilder.maxPendingMessagesAcrossPartitions(arguments.maxPendingMessagesAcrossPartitions);
+            }
 
             AtomicReference<Transaction> transactionAtomicReference;
             if (arguments.isEnableTransaction) {

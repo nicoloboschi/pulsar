@@ -105,6 +105,19 @@
         </dependency>
 
         <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>${javax.annotation-api.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jsonwebtoken.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.prestosql</groupId>
             <artifactId>presto-main</artifactId>
             <version>${presto.version}</version>
