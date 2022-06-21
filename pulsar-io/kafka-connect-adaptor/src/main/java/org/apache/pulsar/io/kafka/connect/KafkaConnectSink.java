@@ -326,7 +326,7 @@ public class KafkaConnectSink implements Sink<GenericObject> {
             // for the messages from the same batch.
             // Special case for FunctionCommon.getSequenceId()
             if (maxBatchBitsForOffset > 0) {
-                MessageSequenceRef messageSequenceRef = getMessageBatchIndexWithReflection(messageId);
+                BatchMessageSequenceRef messageSequenceRef = getMessageSequenceRefForBatchMessage(messageId);
                 if (messageSequenceRef != null) {
                     long ledgerId = messageSequenceRef.getLedgerId();
                     long entryId = messageSequenceRef.getEntryId();
@@ -362,13 +362,14 @@ public class KafkaConnectSink implements Sink<GenericObject> {
 
     @Getter
     @AllArgsConstructor
-    private static class MessageSequenceRef {
+    static class BatchMessageSequenceRef {
         long ledgerId;
         long entryId;
         int batchIdx;
     }
 
-    private static MessageSequenceRef getMessageBatchIndexWithReflection(MessageId messageId) {
+    @VisibleForTesting
+    static BatchMessageSequenceRef getMessageSequenceRefForBatchMessage(MessageId messageId) {
         long ledgerId;
         long entryId;
         int batchIdx;
@@ -397,7 +398,7 @@ public class KafkaConnectSink implements Sink<GenericObject> {
             throw new RuntimeException(ex);
         }
 
-        return new MessageSequenceRef(ledgerId, entryId, batchIdx);
+        return new BatchMessageSequenceRef(ledgerId, entryId, batchIdx);
     }
 
     @SuppressWarnings("rawtypes")
