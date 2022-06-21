@@ -368,7 +368,7 @@ public class KafkaConnectSink implements Sink<GenericObject> {
         int batchIdx;
     }
 
-    private MessageSequenceRef getMessageBatchIndexWithReflection(MessageId messageId) {
+    private static MessageSequenceRef getMessageBatchIndexWithReflection(MessageId messageId) {
         long ledgerId;
         long entryId;
         int batchIdx;
