@@ -30,7 +30,7 @@
   </parent>
 
   <artifactId>pulsar-shell-distribution</artifactId>
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
   <name>Pulsar :: Distribution :: Shell</name>
 
   <dependencies>
@@ -103,4 +103,97 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>native</id>
+      <properties>
+        <graalvm.native.config.dir>${project.basedir}/src/native-image/generated-config</graalvm.native.config.dir>
+        <skipNativeImageBuild>false</skipNativeImageBuild>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <version>${maven-enforcer-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>enforce-maven</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireJavaVendor>
+                      <includes>
+                        <include>GraalVM Community</include>
+                      </includes>
+                      <message>GraalVM Community is required to build the native image.</message>
+                    </requireJavaVendor>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>**/Log4j2Plugins.dat</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <version>0.9.12</version>
+            <extensions>true</extensions>
+            <executions>
+              <execution>
+                <id>build-native</id>
+                <goals>
+                  <goal>build</goal>
+                </goals>
+                <configuration>
+                  <skip>${skipNativeImageBuild}</skip>
+                  <mainClass>org.apache.pulsar.shell.PulsarShell</mainClass>
+                  <buildArgs>
+                    <arg>--initialize-at-run-time=io.netty,io.grpc.netty.shaded.io.netty</arg>
+                    <arg>--no-fallback</arg>
+                  </buildArgs>
+                </configuration>
+                <phase>package</phase>
+              </execution>
+            </executions>
+            <configuration>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>distro-native-image</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <attach>true</attach>
+                  <tarLongFileMode>posix</tarLongFileMode>
+                  <finalName>apache-pulsar-shell-native-${project.version}</finalName>
+                  <descriptors>
+                    <descriptor>src/assemble/native-image.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
