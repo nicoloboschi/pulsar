@@ -28,6 +28,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.common.api.proto.CommandSuccess;
 import org.apache.pulsar.common.naming.TopicName;
+import org.awaitility.Awaitility;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -137,7 +138,12 @@ public class ProducerCloseTest extends ProducerConsumerBase {
                 .getTopicReference(TopicName.get(topic).getPartitionedTopicName());
         Assert.assertTrue(topicOptional.isPresent());
         topicOptional.get().close(true).get();
-        Assert.assertEquals(producer.getState(), HandlerState.State.Connecting);
+        // since the client receives CLOSE_PRODUCER from the broker we have 5 seconds before the client will reconnect
+        // and set the state to Ready. At the same time we may need to wait for the client to receive and handle the
+        // CLOSE_PRODUCER command
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+                Assert.assertEquals(producer.getState(), HandlerState.State.Connecting)
+        );
         if (isAsyncSend) {
             producer.newMessage().value("test".getBytes()).sendAsync().get();
         } else {
