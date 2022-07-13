@@ -46,7 +46,8 @@ import org.apache.pulsar.shell.config.FileConfigStore;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-    import org.jline.reader.impl.completer.AggregateCompleter;
+import org.jline.reader.impl.DefaultParser;
+import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
@@ -218,6 +219,7 @@ public class PulsarShell {
 
             LineReaderBuilder readerBuilder = LineReaderBuilder.builder()
                     .terminal(terminal)
+                    .parser(new DefaultParser().eofOnUnclosedQuote(true))
                     .completer(completer)
                     .variable(LineReader.INDENTATION, 2)
                     .option(LineReader.Option.INSERT_BRACKET, true);

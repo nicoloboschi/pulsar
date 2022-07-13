@@ -281,20 +281,25 @@ public class ConfigShell implements ShellCommandsProvider {
         @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.FILES)
         protected String file;
 
+        @Parameter(names = {"--value"}, description = "Inline value of the config")
+        protected String inlineValue;
+
         @Override
         @SneakyThrows
         public boolean run() {
             if (!verifyCondition()) {
                 return false;
             }
-            byte[] bytes;
-            if (file != null) {
+            final String value;
+            if (inlineValue != null) {
+                value = inlineValue;
+            } else if (file != null) {
                 final File f = new File(file);
                 if (!f.exists()) {
                     print("File " + f.getAbsolutePath() + " not found.");
                     return false;
                 }
-                bytes = Files.readAllBytes(f.toPath());
+                value = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
             } else if (url != null) {
                 final ByteArrayOutputStream bout = new ByteArrayOutputStream();
                 try {
@@ -305,14 +310,12 @@ public class ConfigShell implements ShellCommandsProvider {
                     print("Failed to download configuration: " + e.getMessage());
                     return false;
                 }
-                bytes = bout.toByteArray();
+                value = new String(bout.toByteArray(), StandardCharsets.UTF_8);
             } else {
-                print("--file or --url are required.");
+                print("At least one between --file, --url or --value is required.");
                 return false;
             }
 
-
-            final String value = new String(bytes, StandardCharsets.UTF_8);
             configStore.putConfig(new ConfigStore.ConfigEntry(name, value));
             if (currentConfig.equals(name)) {
                 final Properties properties = new Properties();
