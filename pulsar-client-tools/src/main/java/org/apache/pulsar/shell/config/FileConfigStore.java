@@ -20,9 +20,6 @@ package org.apache.pulsar.shell.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -33,7 +30,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Scanner;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+/**
+ * File based configurations store.
+ *
+ * All the configurations are stored in a single file in JSON format.
+ */
 public class FileConfigStore implements ConfigStore {
 
     @Data

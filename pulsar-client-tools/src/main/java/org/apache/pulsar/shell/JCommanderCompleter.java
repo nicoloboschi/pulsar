@@ -18,10 +18,10 @@
  */
 package org.apache.pulsar.shell;
 
+import static java.lang.annotation.ElementType.FIELD;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterDescription;
 import com.beust.jcommander.WrappedParameter;
-
 import java.io.File;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -46,8 +45,6 @@ import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-
-import static java.lang.annotation.ElementType.FIELD;
 
 /**
  * Convert JCommander instance to JLine3 completers.

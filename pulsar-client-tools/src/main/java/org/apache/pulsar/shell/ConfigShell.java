@@ -18,22 +18,18 @@
  */
 package org.apache.pulsar.shell;
 
+import static org.apache.pulsar.shell.config.ConfigStore.DEFAULT_CONFIG;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import lombok.Getter;
-import lombok.SneakyThrows;
-import org.apache.commons.io.IOUtils;
-import org.apache.pulsar.shell.config.ConfigStore;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,9 +38,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.SneakyThrows;
+import org.apache.commons.io.IOUtils;
+import org.apache.pulsar.shell.config.ConfigStore;
 
-import static org.apache.pulsar.shell.config.ConfigStore.DEFAULT_CONFIG;
-
+/**
+ * Shell commands to manage shell configurations.
+ */
 @Parameters(commandDescription = "Manage Pulsar shell configurations.")
 public class ConfigShell implements ShellCommandsProvider {
 
@@ -53,7 +54,7 @@ public class ConfigShell implements ShellCommandsProvider {
     @Parameters
     public static class Params {
 
-        @Parameter(names = {"-h", "--help",}, help = true, description = "Show this help.")
+        @Parameter(names = {"-h", "--help"}, help = true, description = "Show this help.")
         boolean help;
     }
 
@@ -176,7 +177,7 @@ public class ConfigShell implements ShellCommandsProvider {
     @Parameters(commandDescription = "Use the configuration for next commands")
     private class CmdConfigUse implements RunnableWithResult {
         @Parameter(description = "Name of the config", required = true)
-        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS)
         private String name;
 
         @Override
@@ -199,7 +200,7 @@ public class ConfigShell implements ShellCommandsProvider {
     @Parameters(commandDescription = "View configuration")
     private class CmdConfigView implements RunnableWithResult {
         @Parameter(description = "Name of the config", required = true)
-        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS)
         private String name;
 
         @Override
@@ -218,7 +219,7 @@ public class ConfigShell implements ShellCommandsProvider {
     @Parameters(commandDescription = "Delete a configuration")
     private class CmdConfigDelete implements RunnableWithResult {
         @Parameter(description = "Name of the config", required = true)
-        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS)
         private String name;
 
         @Override
@@ -270,14 +271,14 @@ public class ConfigShell implements ShellCommandsProvider {
     private abstract class CmdConfigPut implements RunnableWithResult {
 
         @Parameter(description = "Configuration name", required = true)
-        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS)
         protected String name;
 
         @Parameter(names = {"--url"}, description = "URL of the config")
         protected String url;
 
         @Parameter(names = {"--file"}, description = "File path of the config")
-        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.FILES )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.FILES)
         protected String file;
 
         @Override

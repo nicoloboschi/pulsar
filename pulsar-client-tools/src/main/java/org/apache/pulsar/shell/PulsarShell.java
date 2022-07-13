@@ -29,7 +29,6 @@ import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -228,8 +227,8 @@ public class PulsarShell {
 
             final String welcomeMessage =
                     String.format("Welcome to Pulsar shell!\n  %s: %s\n  %s: %s\n\n"
-                                    + "Type %s to get started or try the autocompletion (TAB button).\n" +
-                                    "Type %s or %s to end the shell session.\n",
+                                    + "Type %s to get started or try the autocompletion (TAB button).\n"
+                                    + "Type %s or %s to end the shell session.\n",
                             new AttributedStringBuilder().style(AttributedStyle.BOLD).append("Service URL").toAnsi(),
                             serviceUrl,
                             new AttributedStringBuilder().style(AttributedStyle.BOLD).append("Admin URL").toAnsi(),

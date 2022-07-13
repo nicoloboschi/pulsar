@@ -17,33 +17,3 @@
  * under the License.
  */
 package org.apache.pulsar.shell.config;
-
-import java.io.IOException;
-import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-/**
- * Shell configurations store layer.
- */
-public interface ConfigStore {
-
-    String DEFAULT_CONFIG = "default";
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    class ConfigEntry {
-        String name;
-        String value;
-    }
-
-
-    void putConfig(ConfigEntry entry) throws IOException;
-
-    ConfigEntry getConfig(String name) throws IOException;
-
-    void deleteConfig(String name) throws IOException;
-
-    List<ConfigEntry> listConfigs() throws IOException;
-}
