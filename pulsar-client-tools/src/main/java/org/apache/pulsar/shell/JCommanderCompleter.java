@@ -23,7 +23,6 @@ import com.beust.jcommander.ParameterDescription;
 import com.beust.jcommander.WrappedParameter;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
@@ -36,12 +35,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.pulsar.admin.cli.CmdBase;
 import org.apache.pulsar.shell.config.ConfigStore;
-import org.checkerframework.checker.units.qual.C;
 import org.jline.builtins.Completers;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
@@ -49,10 +46,8 @@ import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.utils.AttributedString;
 
 import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.METHOD;
 
 /**
  * Convert JCommander instance to JLine3 completers.
@@ -178,10 +173,10 @@ public class JCommanderCompleter {
         final Field field = (Field) reflField.get(param.getParameterized());
         final ParameterCompleter parameterCompleter = field.getAnnotation(ParameterCompleter.class);
         if (parameterCompleter != null) {
-            final ParameterCompleter.Completers completer = parameterCompleter.completer();
-            if (completer == ParameterCompleter.Completers.FILES) {
-                valueCompleter = new Completers.FilesCompleter(new File("."));
-            } else if (completer == ParameterCompleter.Completers.CONFIGS) {
+            final ParameterCompleter.Type completer = parameterCompleter.type();
+            if (completer == ParameterCompleter.Type.FILES) {
+                valueCompleter = new Completers.FilesCompleter(new File(System.getProperty("user.dir")));
+            } else if (completer == ParameterCompleter.Type.CONFIGS) {
                 valueCompleter = new Completer() {
                     @Override
                     @SneakyThrows
@@ -197,15 +192,15 @@ public class JCommanderCompleter {
     }
 
     @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-    @Target({ FIELD, METHOD })
+    @Target({ FIELD })
     public @interface ParameterCompleter {
 
-        enum Completers {
+        enum Type {
             FILES,
             CONFIGS;
         }
 
-        Completers completer();
+        Type type();
 
     }
 

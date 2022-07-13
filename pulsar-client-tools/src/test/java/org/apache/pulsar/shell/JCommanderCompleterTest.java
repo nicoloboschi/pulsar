@@ -33,7 +33,7 @@ public class JCommanderCompleterTest {
         final AdminShell shell = new AdminShell(new Properties());
         shell.setupState(new Properties());
         final List<Completer> completers = JCommanderCompleter.createCompletersForCommand("admin",
-                shell.getJCommander());
+                shell.getJCommander(), null);
         assertFalse(completers.isEmpty());
         for (Completer completer : completers) {
             assertTrue(completer instanceof OptionStrictArgumentCompleter);

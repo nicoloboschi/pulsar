@@ -77,7 +77,7 @@ public class FileConfigStore implements ConfigStore {
     @Override
     public void putConfig(ConfigEntry entry) throws IOException {
         if (DEFAULT_CONFIG.equals(entry.getName())) {
-            throw new IllegalArgumentException("\"" + DEFAULT_CONFIG + "\" can't be modified.");
+            throw new IllegalArgumentException("'" + DEFAULT_CONFIG + "' can't be modified.");
         }
         cleanupValue(entry);
         fileConfig.configs.put(entry.getName(), entry);
@@ -110,7 +110,7 @@ public class FileConfigStore implements ConfigStore {
     @Override
     public void deleteConfig(String name) throws IOException{
         if (DEFAULT_CONFIG.equals(name)) {
-            throw new IllegalArgumentException("\"" + DEFAULT_CONFIG + "\" can't be modified.");
+            throw new IllegalArgumentException("'" + DEFAULT_CONFIG + "' can't be deleted.");
         }
         final ConfigEntry old = fileConfig.configs.remove(name);
         if (old != null) {

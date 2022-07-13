@@ -150,6 +150,7 @@ public class PulsarShell {
 
         pulsarShellDir = computePulsarShellFile();
         Files.createDirectories(pulsarShellDir.toPath());
+        System.out.println(String.format("Using directory: %s", pulsarShellDir.getAbsolutePath()));
 
         ConfigStore.ConfigEntry defaultConfig = null;
         if (mainOptions.configFile != null) {
@@ -226,12 +227,16 @@ public class PulsarShell {
             LineReader reader = readerBuilder.build();
 
             final String welcomeMessage =
-                    String.format("Welcome to Pulsar shell!\n  %s: %s\n  %s: %s\n\n "
-                                    + "Type 'help' to get started or try the autocompletion (TAB button).\n",
+                    String.format("Welcome to Pulsar shell!\n  %s: %s\n  %s: %s\n\n"
+                                    + "Type %s to get started or try the autocompletion (TAB button).\n" +
+                                    "Type %s or %s to end the shell session.\n",
                             new AttributedStringBuilder().style(AttributedStyle.BOLD).append("Service URL").toAnsi(),
                             serviceUrl,
                             new AttributedStringBuilder().style(AttributedStyle.BOLD).append("Admin URL").toAnsi(),
-                            adminUrl);
+                            adminUrl,
+                            new AttributedStringBuilder().style(AttributedStyle.BOLD).append("help").toAnsi(),
+                            new AttributedStringBuilder().style(AttributedStyle.BOLD).append("exit").toAnsi(),
+                            new AttributedStringBuilder().style(AttributedStyle.BOLD).append("quit").toAnsi());
             output(welcomeMessage, terminal);
             String promptMessage;
             if (configShell != null && configShell.getCurrentConfig() != null) {

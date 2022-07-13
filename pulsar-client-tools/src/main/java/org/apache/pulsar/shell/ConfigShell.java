@@ -30,8 +30,10 @@ import org.apache.commons.io.IOUtils;
 import org.apache.pulsar.shell.config.ConfigStore;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,9 +41,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
+
+import static org.apache.pulsar.shell.config.ConfigStore.DEFAULT_CONFIG;
 
 @Parameters(commandDescription = "Manage Pulsar shell configurations.")
 public class ConfigShell implements ShellCommandsProvider {
+
 
     @Getter
     @Parameters
@@ -62,7 +68,7 @@ public class ConfigShell implements ShellCommandsProvider {
     private final ConfigStore configStore;
     private final ObjectMapper writer = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     @Getter
-    private String currentConfig = ConfigStore.DEFAULT_CONFIG;
+    private String currentConfig = DEFAULT_CONFIG;
 
     public ConfigShell(PulsarShell pulsarShell) {
         this.configStore = pulsarShell.getConfigStore();
@@ -92,7 +98,8 @@ public class ConfigShell implements ShellCommandsProvider {
         jcommander.addObject(params);
 
         commands.put("list", new CmdConfigList());
-        commands.put("put", new CmdConfigPut());
+        commands.put("create", new CmdConfigCreate());
+        commands.put("update", new CmdConfigUpdate());
         commands.put("delete", new CmdConfigDelete());
         commands.put("use", new CmdConfigUse());
         commands.put("view", new CmdConfigView());
@@ -148,15 +155,28 @@ public class ConfigShell implements ShellCommandsProvider {
         @Override
         @SneakyThrows
         public boolean run() {
-            print(configStore.listConfigs());
+            print(configStore
+                    .listConfigs()
+                    .stream()
+                    .map(e -> formatEntry(e))
+                    .collect(Collectors.toList())
+            );
             return true;
+        }
+
+        private String formatEntry(ConfigStore.ConfigEntry entry) {
+            final String name = entry.getName();
+            if (name.equals(currentConfig)) {
+                return name + " (*)";
+            }
+            return name;
         }
     }
 
     @Parameters(commandDescription = "Use the configuration for next commands")
     private class CmdConfigUse implements RunnableWithResult {
         @Parameter(description = "Name of the config", required = true)
-        @JCommanderCompleter.ParameterCompleter(completer = JCommanderCompleter.ParameterCompleter.Completers.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
         private String name;
 
         @Override
@@ -176,10 +196,10 @@ public class ConfigShell implements ShellCommandsProvider {
         }
     }
 
-    @Parameters(commandDescription = "Show configuration")
+    @Parameters(commandDescription = "View configuration")
     private class CmdConfigView implements RunnableWithResult {
         @Parameter(description = "Name of the config", required = true)
-        @JCommanderCompleter.ParameterCompleter(completer = JCommanderCompleter.ParameterCompleter.Completers.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
         private String name;
 
         @Override
@@ -198,14 +218,18 @@ public class ConfigShell implements ShellCommandsProvider {
     @Parameters(commandDescription = "Delete a configuration")
     private class CmdConfigDelete implements RunnableWithResult {
         @Parameter(description = "Name of the config", required = true)
-        @JCommanderCompleter.ParameterCompleter(completer = JCommanderCompleter.ParameterCompleter.Completers.CONFIGS )
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
         private String name;
 
         @Override
         @SneakyThrows
         public boolean run() {
+            if (DEFAULT_CONFIG.equals(name)) {
+                print("'" + name + "' can't be deleted.");
+                return false;
+            }
             if (currentConfig != null && currentConfig.equals(name)) {
-                print("'" + name + "' is currenty used and it can't be deleted");
+                print("'" + name + "' is currently used and it can't be deleted.");
                 return false;
             }
             configStore.deleteConfig(name);
@@ -213,31 +237,72 @@ public class ConfigShell implements ShellCommandsProvider {
         }
     }
 
-    @Parameters(commandDescription = "Put a new configuration or override an existing one.")
-    private class CmdConfigPut implements RunnableWithResult {
+    @Parameters(commandDescription = "Create a new configuration.")
+    private class CmdConfigCreate extends CmdConfigPut {
+
+        @Override
+        @SneakyThrows
+        boolean verifyCondition() {
+            final boolean exists = configStore.getConfig(name) != null;
+            if (exists) {
+                print("Config '" + name + "' already exists.");
+                return false;
+            }
+            return true;
+        }
+    }
+
+    @Parameters(commandDescription = "Update an existing configuration.")
+    private class CmdConfigUpdate extends CmdConfigPut {
+
+        @Override
+        @SneakyThrows
+        boolean verifyCondition() {
+            final boolean exists = configStore.getConfig(name) != null;
+            if (!exists) {
+                print("Config '" + name + "' does not exist.");
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private abstract class CmdConfigPut implements RunnableWithResult {
 
         @Parameter(description = "Configuration name", required = true)
-        private String name;
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.CONFIGS )
+        protected String name;
 
         @Parameter(names = {"--url"}, description = "URL of the config")
-        private String url;
+        protected String url;
 
         @Parameter(names = {"--file"}, description = "File path of the config")
-        @JCommanderCompleter.ParameterCompleter(completer = JCommanderCompleter.ParameterCompleter.Completers.FILES )
-        private String file;
+        @JCommanderCompleter.ParameterCompleter(type = JCommanderCompleter.ParameterCompleter.Type.FILES )
+        protected String file;
 
         @Override
         @SneakyThrows
         public boolean run() {
+            if (!verifyCondition()) {
+                return false;
+            }
             byte[] bytes;
-
             if (file != null) {
-                bytes = Files.readAllBytes(new File(file).toPath());
+                final File f = new File(file);
+                if (!f.exists()) {
+                    print("File " + f.getAbsolutePath() + " not found.");
+                    return false;
+                }
+                bytes = Files.readAllBytes(f.toPath());
             } else if (url != null) {
                 final ByteArrayOutputStream bout = new ByteArrayOutputStream();
-
-                try (InputStream in = URI.create(url).toURL().openStream()) {
-                    IOUtils.copy(in, bout);
+                try {
+                    try (InputStream in = URI.create(url).toURL().openStream()) {
+                        IOUtils.copy(in, bout);
+                    }
+                } catch (IOException | IllegalArgumentException e) {
+                    print("Failed to download configuration: " + e.getMessage());
+                    return false;
                 }
                 bytes = bout.toByteArray();
             } else {
@@ -245,9 +310,18 @@ public class ConfigShell implements ShellCommandsProvider {
                 return false;
             }
 
-            configStore.putConfig(new ConfigStore.ConfigEntry(name, new String(bytes, StandardCharsets.UTF_8)));
+
+            final String value = new String(bytes, StandardCharsets.UTF_8);
+            configStore.putConfig(new ConfigStore.ConfigEntry(name, value));
+            if (currentConfig.equals(name)) {
+                final Properties properties = new Properties();
+                properties.load(new StringReader(value));
+                pulsarShell.reload(properties);
+            }
             return true;
         }
+
+        abstract boolean verifyCondition();
     }
 
 
@@ -262,7 +336,7 @@ public class ConfigShell implements ShellCommandsProvider {
             if (item instanceof String) {
                 jcommander.getConsole().println((String) item);
             } else {
-                System.out.println(writer.writeValueAsString(item));
+                jcommander.getConsole().println(writer.writeValueAsString(item));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
