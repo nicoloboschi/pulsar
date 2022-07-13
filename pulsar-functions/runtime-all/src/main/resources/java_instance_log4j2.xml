@@ -31,6 +31,10 @@
             <value>info</value>
         </Property>
         <Property>
+            <name>pulsar.log.root.level</name>
+            <value>info</value>
+        </Property>
+        <Property>
             <name>bk.log.level</name>
             <value>info</value>
         </Property>
@@ -120,7 +124,7 @@
             </AppenderRef>
         </Logger>
         <Root>
-            <level>info</level>
+            <level>${sys:pulsar.log.root.level}</level>
             <AppenderRef>
                 <ref>${sys:pulsar.log.appender}</ref>
                 <level>${sys:pulsar.log.level}</level>
