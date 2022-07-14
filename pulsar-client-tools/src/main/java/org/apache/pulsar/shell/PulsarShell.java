@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -106,12 +107,15 @@ public class PulsarShell {
                 + " Each command must be separated by a newline.")
         String filename;
 
-        @Parameter(names = {"-e", "--exit-on-error"}, description = "If true, the shell will be interrupted "
+        @Parameter(names = {"--fail-on-error"}, description = "If true, the shell will be interrupted "
                 + "if a command throws an exception.")
-        boolean exitOnError;
+        boolean failOnError;
 
         @Parameter(names = {"-"}, description = "Read commands from the standard input.")
         boolean readFromStdin;
+
+        @Parameter(names = {"-e", "--execute-command"}, description = "Execute this command and exit.")
+        String inlineCommand;
 
         @Parameter(names = {"-np", "--no-progress"}, description = "Display raw output of the commands without the "
                 + "fancy progress visualization.")
@@ -153,20 +157,29 @@ public class PulsarShell {
         System.out.println(String.format("Using directory: %s", pulsarShellDir.getAbsolutePath()));
 
         ConfigStore.ConfigEntry defaultConfig = null;
+        String configFile;
+
         if (mainOptions.configFile != null) {
-            String configFile = mainOptions.configFile;
+            configFile = mainOptions.configFile;
+        } else {
+            configFile = System.getProperty("pulsar.shell.config.default");
+        }
+        if (configFile != null) {
             final String defaultConfigValue =
                     new String(Files.readAllBytes(new File(configFile).toPath()), StandardCharsets.UTF_8);
-            properties.load(new StringReader(defaultConfigValue));
-            try (FileInputStream fis = new FileInputStream(configFile)) {
-                properties.load(fis);
-            }
             defaultConfig = new ConfigStore.ConfigEntry(ConfigStore.DEFAULT_CONFIG, defaultConfigValue);
         }
 
         configStore = new FileConfigStore(
                 Paths.get(pulsarShellDir.getAbsolutePath(), "configs.json").toFile(),
                 defaultConfig);
+
+        final ConfigStore.ConfigEntry lastUsed = configStore.getLastUsed();
+        if (lastUsed != null) {
+            properties.load(new StringReader(lastUsed.getValue()));
+        } else if (defaultConfig != null) {
+            properties.load(new StringReader(defaultConfig.getValue()));
+        }
         this.args = args;
     }
 
@@ -318,11 +331,7 @@ public class PulsarShell {
         CommandReader commandReader;
         CommandsInfo commandsInfo = null;
 
-        if (mainOptions.readFromStdin && mainOptions.filename != null) {
-            throw new IllegalArgumentException("Cannot use stdin and -f/--filename option at same time");
-        }
-        boolean isNonInteractiveMode = mainOptions.filename != null || mainOptions.readFromStdin;
-
+        boolean isNonInteractiveMode = isNonInteractiveMode();
         if (isNonInteractiveMode) {
             final List<String> lines;
             if (mainOptions.filename != null) {
@@ -330,9 +339,17 @@ public class PulsarShell {
                         .stream()
                         .filter(PulsarShell::filterLine)
                         .collect(Collectors.toList());
-            } else {
+            } else if (mainOptions.readFromStdin) {
                 try (BufferedReader stdinReader = new BufferedReader(new InputStreamReader(System.in))) {
                     lines = stdinReader.lines().filter(PulsarShell::filterLine).collect(Collectors.toList());
+                }
+            } else {
+                lines = new ArrayList<>();
+                try (Scanner scanner = new Scanner(mainOptions.inlineCommand);) {
+                    while (scanner.hasNextLine()) {
+                        String line = scanner.nextLine().trim();
+                        lines.add(line);
+                    }
                 }
             }
             if (!mainOptions.noProgress) {
@@ -407,7 +424,7 @@ public class PulsarShell {
             } catch (Throwable t) {
                 t.printStackTrace(terminal.writer());
             } finally {
-                final boolean willExitWithError = mainOptions.exitOnError && !commandOk;
+                final boolean willExitWithError = mainOptions.failOnError && !commandOk;
                 if (commandsInfo != null && !willExitWithError) {
                     commandsInfo.executingCommand = null;
                     commandsInfo.executedCommands.add(new CommandsInfo.ExecutedCommandInfo(line, commandOk));
@@ -416,11 +433,29 @@ public class PulsarShell {
                 pulsarShellCommandsProvider.cleanupState(properties);
 
             }
-            if (mainOptions.exitOnError && !commandOk) {
+            if (mainOptions.failOnError && !commandOk) {
                 exit(1);
                 return;
             }
         }
+    }
+
+    private boolean isNonInteractiveMode() {
+        boolean commandOk = true;
+        if (mainOptions.inlineCommand != null) {
+            if (mainOptions.readFromStdin
+                    || mainOptions.filename != null) {
+                commandOk = false;
+            }
+        } else if (mainOptions.readFromStdin
+                && mainOptions.filename != null) {
+            commandOk = false;
+        }
+
+        if (!commandOk) {
+            throw new IllegalArgumentException("Cannot use stdin, -e/--execute-command and -f/--filename option at the same time");
+        }
+        return mainOptions.filename != null || mainOptions.readFromStdin || mainOptions.inlineCommand != null;
     }
 
     private void printExecutingCommands(Terminal terminal,

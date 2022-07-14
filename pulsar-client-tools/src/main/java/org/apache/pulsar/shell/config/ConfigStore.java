@@ -20,6 +20,8 @@ package org.apache.pulsar.shell.config;
 
 import java.io.IOException;
 import java.util.List;
+
+import io.swagger.jackson.mixin.IgnoreOriginalRefMixin;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,4 +48,8 @@ public interface ConfigStore {
     void deleteConfig(String name) throws IOException;
 
     List<ConfigEntry> listConfigs() throws IOException;
+
+    void setLastUsed(String name) throws IOException;
+
+    ConfigEntry getLastUsed() throws IOException;
 }

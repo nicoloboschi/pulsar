@@ -44,6 +44,7 @@ public class FileConfigStore implements ConfigStore {
     @NoArgsConstructor
     public static class FileConfig {
         private LinkedHashMap<String, ConfigEntry> configs = new LinkedHashMap<>();
+        private String last;
     }
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -127,5 +128,19 @@ public class FileConfigStore implements ConfigStore {
         List<ConfigEntry> all = new ArrayList<>(fileConfig.configs.values());
         all.add(0, defaultConfig);
         return all;
+    }
+
+    @Override
+    public void setLastUsed(String name) throws IOException {
+        fileConfig.last = name;
+        write();
+    }
+
+    @Override
+    public ConfigEntry getLastUsed() throws IOException {
+        if (fileConfig.last != null) {
+            return getConfig(fileConfig.last);
+        }
+        return null;
     }
 }

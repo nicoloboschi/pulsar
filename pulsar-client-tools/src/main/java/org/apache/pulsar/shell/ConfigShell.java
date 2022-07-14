@@ -33,6 +33,7 @@ import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -193,6 +194,7 @@ public class ConfigShell implements ShellCommandsProvider {
             final Properties properties = new Properties();
             properties.load(new StringReader(value));
             pulsarShell.reload(properties);
+            configStore.setLastUsed(name);
             return true;
         }
     }
@@ -259,6 +261,10 @@ public class ConfigShell implements ShellCommandsProvider {
         @Override
         @SneakyThrows
         boolean verifyCondition() {
+            if (DEFAULT_CONFIG.equals(name)) {
+                print("'" + name + "' can't be updated.");
+                return false;
+            }
             final boolean exists = configStore.getConfig(name) != null;
             if (!exists) {
                 print("Config '" + name + "' does not exist.");
@@ -292,7 +298,12 @@ public class ConfigShell implements ShellCommandsProvider {
             }
             final String value;
             if (inlineValue != null) {
-                value = inlineValue;
+                if (inlineValue.startsWith("base64:")) {
+                    final byte[] bytes = Base64.getDecoder().decode(inlineValue.substring("base64:".length()));
+                    value = new String(bytes, StandardCharsets.UTF_8);
+                } else {
+                    value = inlineValue;
+                }
             } else if (file != null) {
                 final File f = new File(file);
                 if (!f.exists()) {

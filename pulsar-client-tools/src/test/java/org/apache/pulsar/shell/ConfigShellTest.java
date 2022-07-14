@@ -27,11 +27,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 import com.beust.jcommander.internal.Console;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -98,7 +100,7 @@ public class ConfigShellTest {
 
         assertFalse(configShell.runCommand(new String[]{"update", "default",
                 "--file", newClientConf.toFile().getAbsolutePath()}));
-        assertEquals(output, Arrays.asList("'default' can't be modified."));
+        assertEquals(output, Arrays.asList("'default' can't be updated."));
         output.clear();
 
         assertFalse(configShell.runCommand(new String[]{"delete", "default"}));
@@ -117,9 +119,13 @@ public class ConfigShellTest {
         assertTrue(output.isEmpty());
         output.clear();
 
+        assertNull(pulsarShell.getConfigStore().getLastUsed());
+
         assertTrue(configShell.runCommand(new String[]{"use", "myclient"}));
         assertTrue(output.isEmpty());
         output.clear();
+        assertEquals(pulsarShell.getConfigStore().getLastUsed(), pulsarShell.getConfigStore()
+                .getConfig("myclient"));
 
         verify(pulsarShell).reload(any());
 
