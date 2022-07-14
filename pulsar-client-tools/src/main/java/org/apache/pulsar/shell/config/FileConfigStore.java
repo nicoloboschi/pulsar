@@ -59,8 +59,12 @@ public class FileConfigStore implements ConfigStore {
         } else {
             fileConfig = new FileConfig();
         }
-        this.defaultConfig = new ConfigEntry(defaultConfig.getName(), defaultConfig.getValue());
-        cleanupValue(this.defaultConfig);
+        if (defaultConfig != null) {
+            this.defaultConfig = new ConfigEntry(defaultConfig.getName(), defaultConfig.getValue());
+            cleanupValue(this.defaultConfig);
+        } else {
+            this.defaultConfig = null;
+        }
     }
 
     private void read() throws IOException {
@@ -126,7 +130,9 @@ public class FileConfigStore implements ConfigStore {
     @Override
     public List<ConfigEntry> listConfigs() {
         List<ConfigEntry> all = new ArrayList<>(fileConfig.configs.values());
-        all.add(0, defaultConfig);
+        if (defaultConfig != null) {
+            all.add(0, defaultConfig);
+        }
         return all;
     }
 
