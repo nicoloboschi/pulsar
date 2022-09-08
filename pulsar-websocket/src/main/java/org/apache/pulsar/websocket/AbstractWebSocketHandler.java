@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractWebSocketHandler extends WebSocketAdapter implements Closeable {
 
-    protected final WebSocketService service;
+    public final WebSocketService service;
     protected final HttpServletRequest request;
 
     protected final TopicName topic;
