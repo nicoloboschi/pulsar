@@ -32,6 +32,7 @@ namespace pulsar {
 
 /**
  * @class AckGroupingTracker
+ * Change to code
  * Default ACK grouping tracker, it actually neither tracks ACK requests nor sends them to brokers.
  * It can be directly used by consumers for non-persistent topics.
  */
