@@ -139,7 +139,7 @@ jobs:
     steps:
       - name: Check failed needs
         run: |
-          echo "${{ fromJson(needs) }}" > needs.json 
+          echo "${{ fromJson(needs) }}" > needs.json
           cat needs.json 
           for result in $(jq -r '.[]' needs.json)
           do
