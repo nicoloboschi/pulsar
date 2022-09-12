@@ -64,7 +64,7 @@ jobs:
     needs: changed_files_job
     name: Build and License check
     runs-on: ubuntu-20.04
-    timeout-minutes: 60
+    timeout-minutes: 1
     if: ${{ needs.changed_files_job.outputs.docs_only != 'true' }}
     steps:
       - name: checkout
@@ -863,10 +863,7 @@ jobs:
     timeout-minutes: 10
     needs: [
       'changed_files_job',
-      'unit-tests',
-      'integration-tests',
-      'system-tests',
-      'macos-build'
+      'build-and-license-check'
     ]
     steps:
       - name: checkout
