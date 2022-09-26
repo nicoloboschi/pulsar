@@ -27,20 +27,14 @@
     <version>2.10.1.8-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>pulsar-io-jdbc-sqlite</artifactId>
-  <name>Pulsar IO :: Jdbc :: Sqlite</name>
+  <artifactId>pulsar-io-jdbc-cdata-salesforce</artifactId>
+  <name>Pulsar IO :: Jdbc :: Salesforce</name>
 
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>pulsar-io-jdbc-core</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.xerial</groupId>
-      <artifactId>sqlite-jdbc</artifactId>
-      <version>${sqlite-jdbc.version}</version>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -79,7 +73,7 @@
   <repositories>
     <repository>
       <id>local-maven-repo</id>
-      <url>file:///Users/nicolo.boschi/.m2/repository</url>
+      <url>file:///${user.dir}/.m2/repository</url>
     </repository>
   </repositories>
 

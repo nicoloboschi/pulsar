@@ -25,27 +25,23 @@ import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
 
 @Connector(
-    name = "jdbc-sqlite",
+    name = "jdbc-cdata-salesforce",
     type = IOType.SINK,
-    help = "A simple JDBC sink for SQLite that writes pulsar messages to a database table",
+    help = "A simple JDBC sink for Salesforce",
     configClass = JdbcSinkConfig.class
 )
-public class SqliteJdbcAutoSchemaSink extends BaseJdbcAutoSchemaSink {
+public class CDataSalesforceAutoSchemaSink extends BaseJdbcAutoSchemaSink {
 
     @Override
     public String generateUpsertQueryStatement() {
-        final String keys = tableDefinition.getKeyColumns().stream().map(JdbcUtils.ColumnId::getName)
-                .collect(Collectors.joining(","));
         return JdbcUtils.buildInsertSql(tableDefinition)
-                + " ON CONFLICT(" + keys + ") "
-                + "DO UPDATE SET " + JdbcUtils.buildUpdateSqlSetPart(tableDefinition);
+                .replace("INSERT", "UPSERT");
     }
 
     @Override
     public List<JdbcUtils.ColumnId> getColumnsForUpsert() {
         final List<JdbcUtils.ColumnId> columns = new ArrayList<>();
         columns.addAll(tableDefinition.getColumns());
-        columns.addAll(tableDefinition.getNonKeyColumns());
         return columns;
     }
 }

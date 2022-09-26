@@ -55,18 +55,18 @@ public class JdbcUtilsTest {
         String tableName = "TestGetTableId";
 
         sqliteUtils.createTable(
-            "CREATE TABLE " + tableName + "(" +
-                "    firstName  TEXT," +
-                "    lastName  TEXT," +
-                "    age INTEGER," +
-                "    bool  NUMERIC," +
-                "    byte  INTEGER," +
-                "    short INTEGER NULL," +
-                "    long INTEGER," +
-                "    float NUMERIC," +
-                "    double NUMERIC," +
-                "    bytes BLOB, " +
-                "PRIMARY KEY (firstName, lastName));"
+                "CREATE TABLE " + tableName + "(" +
+                        "    firstName  TEXT," +
+                        "    lastName  TEXT," +
+                        "    age INTEGER," +
+                        "    bool  NUMERIC," +
+                        "    byte  INTEGER," +
+                        "    short INTEGER NULL," +
+                        "    long INTEGER," +
+                        "    float NUMERIC," +
+                        "    double NUMERIC," +
+                        "    bytes BLOB, " +
+                        "PRIMARY KEY (firstName, lastName));"
         );
 
         try (Connection connection = sqliteUtils.getConnection(true);) {

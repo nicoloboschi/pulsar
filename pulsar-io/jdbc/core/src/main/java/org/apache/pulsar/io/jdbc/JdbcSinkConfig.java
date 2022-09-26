@@ -88,6 +88,13 @@ public class JdbcSinkConfig implements Serializable {
 
     @FieldDoc(
             required = false,
+            defaultValue = "200",
+            help = "Use JDBC batches. This option is suggested to improve writes performances."
+    )
+    private boolean useJdbcBatch = true;
+
+    @FieldDoc(
+            required = false,
             defaultValue = "INSERT",
             help = "If it is configured as UPSERT, the sink will use upsert semantics rather than "
                     + "plain INSERT/UPDATE statements. Upsert semantics refer to atomically adding a new row or "

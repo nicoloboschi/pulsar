@@ -49,6 +49,11 @@ public abstract class BaseJdbcAutoSchemaSink extends JdbcAbstractSink<GenericObj
     }
 
     @Override
+    public List<ColumnId> getColumnsForUpsert() {
+        throw new IllegalStateException("UPSERT not supported");
+    }
+
+    @Override
     public void bindValue(PreparedStatement statement, Mutation mutation) throws Exception {
         final List<ColumnId> columns = new ArrayList<>();
         switch (mutation.getType()) {
@@ -56,8 +61,7 @@ public abstract class BaseJdbcAutoSchemaSink extends JdbcAbstractSink<GenericObj
                 columns.addAll(tableDefinition.getColumns());
                 break;
             case UPSERT:
-                columns.addAll(tableDefinition.getColumns());
-                columns.addAll(tableDefinition.getNonKeyColumns());
+                columns.addAll(getColumnsForUpsert());
                 break;
             case UPDATE:
                 columns.addAll(tableDefinition.getNonKeyColumns());
@@ -157,9 +161,7 @@ public abstract class BaseJdbcAutoSchemaSink extends JdbcAbstractSink<GenericObj
     }
 
     private static void setColumnNull(PreparedStatement statement, int index, int type) throws Exception {
-        if (log.isDebugEnabled()) {
-            log.debug("Setting column value to null, statement: {}, index: {}", statement.toString(), index);
-        }
+        //log.info("Setting column value to null, statement: {}, index: {}", statement.toString(), index);
         statement.setNull(index, type);
 
     }
@@ -224,7 +226,7 @@ public abstract class BaseJdbcAutoSchemaSink extends JdbcAbstractSink<GenericObj
                 while (fieldNames.hasNext()) {
                     String fieldName = fieldNames.next();
                     final JsonNode nodeValue = jsonNode.get(fieldName);
-                    data.put(fieldName, getValueFromJsonNode(nodeValue));
+                    data.put(fieldName.toLowerCase(), getValueFromJsonNode(nodeValue));
                 }
                 break;
             case AVRO:
@@ -232,7 +234,7 @@ public abstract class BaseJdbcAutoSchemaSink extends JdbcAbstractSink<GenericObj
                         (org.apache.avro.generic.GenericRecord) record.getNativeObject();
                 for (Schema.Field field : avroNode.getSchema().getFields()) {
                     final String fieldName = field.name();
-                    data.put(fieldName, convertAvroField(avroNode.get(fieldName), field.schema()));
+                    data.put(fieldName.toLowerCase(), convertAvroField(avroNode.get(fieldName), field.schema()));
                 }
                 break;
             default:

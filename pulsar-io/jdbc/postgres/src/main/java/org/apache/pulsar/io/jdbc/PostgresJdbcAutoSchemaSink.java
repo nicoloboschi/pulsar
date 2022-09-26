@@ -18,6 +18,8 @@
  */
 package org.apache.pulsar.io.jdbc;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
@@ -37,5 +39,13 @@ public class PostgresJdbcAutoSchemaSink extends BaseJdbcAutoSchemaSink {
         return JdbcUtils.buildInsertSql(tableDefinition)
                 + " ON CONFLICT(" + keys + ") "
                 + "DO UPDATE SET " + JdbcUtils.buildUpdateSqlSetPart(tableDefinition);
+    }
+
+    @Override
+    public List<JdbcUtils.ColumnId> getColumnsForUpsert() {
+        final List<JdbcUtils.ColumnId> columns = new ArrayList<>();
+        columns.addAll(tableDefinition.getColumns());
+        columns.addAll(tableDefinition.getNonKeyColumns());
+        return columns;
     }
 }

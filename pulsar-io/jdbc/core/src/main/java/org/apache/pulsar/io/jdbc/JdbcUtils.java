@@ -26,7 +26,10 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.IntStream;
 import lombok.Data;
@@ -119,6 +122,8 @@ public class JdbcUtils {
         TableDefinition table = TableDefinition.of(
                 tableId, Lists.newArrayList(), Lists.newArrayList(), Lists.newArrayList());
 
+        final boolean useOnlyListedColumns = true;
+        Set<String> names = new HashSet<>();
         try (ResultSet rs = connection.getMetaData().getColumns(
             tableId.getCatalogName(),
             tableId.getSchemaName(),
@@ -126,7 +131,19 @@ public class JdbcUtils {
             null
         )) {
             while (rs.next()) {
-                final String columnName = rs.getString(4);
+                final String columnName = rs.getString(4).toLowerCase();
+                if (!names.add(columnName)) {
+                    continue;
+                }
+
+
+                boolean isListedAsKey = keyList != null && keyList.contains(columnName);
+                boolean isListedAsNonKey = nonKeyList != null && nonKeyList.contains(columnName);
+                if (useOnlyListedColumns
+                        && !isListedAsKey
+                        && !isListedAsNonKey) {
+                    continue;
+                }
 
                 final int sqlDataType = rs.getInt(5);
                 final String typeName = rs.getString(6);
@@ -159,9 +176,9 @@ public class JdbcUtils {
 
     public static String buildInsertSql(TableDefinition table) {
         StringBuilder builder = new StringBuilder();
-        builder.append("INSERT INTO ");
+        builder.append("INSERT INTO \"");
         builder.append(table.tableId.getTableName());
-        builder.append("(");
+        builder.append("\"(");
 
         table.columns.forEach(columnId -> builder.append(columnId.getName()).append(","));
         builder.deleteCharAt(builder.length() - 1);
@@ -174,6 +191,7 @@ public class JdbcUtils {
     }
 
     public static PreparedStatement buildInsertStatement(Connection connection, String insertSQL) throws SQLException {
+        log.info("build insert statement {}", insertSQL);
         return connection.prepareStatement(insertSQL);
     }
 
@@ -195,9 +213,9 @@ public class JdbcUtils {
 
     public static String buildUpdateSql(TableDefinition table) {
         StringBuilder builder = new StringBuilder();
-        builder.append("UPDATE ");
+        builder.append("UPDATE \"");
         builder.append(table.tableId.getTableName());
-        builder.append(" SET ");
+        builder.append("\" SET ");
         StringJoiner setJoiner = buildUpdateSqlSetPart(table);
         builder.append(setJoiner);
         builder.append(combationWhere(table.keyColumns));
@@ -216,16 +234,18 @@ public class JdbcUtils {
     }
 
     public static PreparedStatement buildUpdateStatement(Connection connection, String updateSQL) throws SQLException {
+        log.info("build update statement {}", updateSQL);
         return connection.prepareStatement(updateSQL);
     }
 
     public static String buildDeleteSql(TableDefinition table) {
-        return "DELETE FROM "
-            + table.tableId.getTableName()
+        return "DELETE FROM \""
+            + table.tableId.getTableName() + "\""
             + combationWhere(table.keyColumns);
     }
 
     public static PreparedStatement buildDeleteStatement(Connection connection, String deleteSQL) throws SQLException {
+        log.info("build delete statement {}", deleteSQL);
         return connection.prepareStatement(deleteSQL);
     }
 
@@ -235,7 +255,7 @@ public class JdbcUtils {
                 return type.getDriverClass();
             }
         }
-        throw new Exception("Provided JDBC connection string contains unknown driver: " + jdbcUrl);
+        return null;
     }
 
 }

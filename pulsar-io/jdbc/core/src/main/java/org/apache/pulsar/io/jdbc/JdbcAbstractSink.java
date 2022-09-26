@@ -23,7 +23,11 @@ import com.google.common.collect.Lists;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -31,7 +35,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -64,8 +71,7 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
     protected JdbcUtils.TableDefinition tableDefinition;
 
     // for flush
-    private List<Record<T>> incomingList;
-    private List<Record<T>> swapList;
+    private LinkedList<Record<T>> incomingList;
     private AtomicBoolean isFlushing;
     private int batchSize;
     private ScheduledExecutorService flushExecutor;
@@ -90,7 +96,7 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
         }
 
 
-        Class.forName(JdbcUtils.getDriverClassName(jdbcSinkConfig.getJdbcUrl()));
+        initDriverClass();
         connection = DriverManager.getConnection(jdbcSinkConfig.getJdbcUrl(), properties);
         connection.setAutoCommit(false);
         log.info("Opened jdbc connection: {}, autoCommit: {}", jdbcUrl, connection.getAutoCommit());
@@ -102,12 +108,18 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
 
         int timeoutMs = jdbcSinkConfig.getTimeoutMs();
         batchSize = jdbcSinkConfig.getBatchSize();
-        incomingList = Lists.newArrayList();
-        swapList = Lists.newArrayList();
+        incomingList = new LinkedList<>();
         isFlushing = new AtomicBoolean(false);
 
         flushExecutor = Executors.newScheduledThreadPool(1);
         flushExecutor.scheduleAtFixedRate(this::flush, timeoutMs, timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    private void initDriverClass() throws Exception {
+        final String driverClassName = JdbcUtils.getDriverClassName(jdbcSinkConfig.getJdbcUrl());
+        if (driverClassName != null) {
+            Class.forName(driverClassName);
+        }
     }
 
     private void initStatement()  throws Exception {
@@ -171,7 +183,7 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
             number = incomingList.size();
         }
         if (number == batchSize) {
-            flushExecutor.schedule(this::flush, 0, TimeUnit.MILLISECONDS);
+            flushExecutor.schedule(() -> flush(), 0, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -184,6 +196,8 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
     }
 
     public abstract String generateUpsertQueryStatement();
+
+    public abstract List<JdbcUtils.ColumnId> getColumnsForUpsert();
 
     public String generateDeleteQueryStatement() {
         return JdbcUtils.buildDeleteSql(tableDefinition);
@@ -209,51 +223,48 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
         DELETE
     }
 
-
-    private void flush() {
+    private synchronized void flush() {
         // if not in flushing state, do flush, else return;
         if (incomingList.size() > 0 && isFlushing.compareAndSet(false, true)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Starting flush, queue size: {}", incomingList.size());
-            }
-            if (!swapList.isEmpty()) {
-                throw new IllegalStateException("swapList should be empty since last flush. swapList.size: "
-                        + swapList.size());
-            }
-            synchronized (this) {
-                List<Record<T>> tmpList;
-                swapList.clear();
+            boolean needAnotherRound;
+            final List<Record<T>> swapList = new ArrayList<>();
 
-                tmpList = swapList;
-                swapList = incomingList;
-                incomingList = tmpList;
+            synchronized (this) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Starting flush, queue size: {}", incomingList.size());
+                }
+                final int maxBatchSize = Math.min(incomingList.size(), batchSize);
+
+                for (int i = 0; i < maxBatchSize; i++) {
+                    swapList.add(incomingList.removeFirst());
+                }
+                needAnotherRound = !incomingList.isEmpty() && incomingList.size() >= batchSize;
             }
+            long start = System.nanoTime();
 
             int count = 0;
             try {
+                PreparedStatement currentBatch = null;
+                final List<Mutation> mutations =
+                        swapList.stream().map(r -> {
+                            final Mutation mutation = createMutation(r);
+                            return mutation;
+                        }).collect(Collectors.toList());
                 // bind each record value
-                for (Record<T> record : swapList) {
-                    final Mutation mutation = createMutation(record);
+                PreparedStatement statement = null;
+                for (Mutation mutation : mutations) {
                     switch (mutation.getType()) {
                         case DELETE:
-                            bindValue(deleteStatement, mutation);
-                            count += 1;
-                            deleteStatement.execute();
+                            statement = deleteStatement;
                             break;
                         case UPDATE:
-                            bindValue(updateStatement, mutation);
-                            count += 1;
-                            updateStatement.execute();
+                            statement = updateStatement;
                             break;
                         case INSERT:
-                            bindValue(insertStatement, mutation);
-                            count += 1;
-                            insertStatement.execute();
+                            statement = insertStatement;
                             break;
                         case UPSERT:
-                            bindValue(upsertStatement, mutation);
-                            count += 1;
-                            upsertStatement.execute();
+                            statement = upsertStatement;
                             break;
                         default:
                             String msg = String.format(
@@ -261,27 +272,59 @@ public abstract class JdbcAbstractSink<T> implements Sink<T> {
                                     mutation.getType(), Arrays.toString(MutationType.values()), MutationType.INSERT);
                             throw new IllegalArgumentException(msg);
                     }
+                    bindValue(statement, mutation);
+                    count += 1;
+                    if (jdbcSinkConfig.isUseJdbcBatch()) {
+                        if (currentBatch != null && statement != currentBatch) {
+                            executeBatch(swapList, currentBatch);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Flushed {} messages in {} ms", count, (System.nanoTime() - start) / 1000 / 1000);
+                            }
+                            start = System.nanoTime();
+                        } else {
+                            statement.addBatch();
+                        }
+                        currentBatch = statement;
+                    } else {
+                        statement.execute();
+                    }
                 }
-                connection.commit();
-                swapList.forEach(Record::ack);
+
+                if (jdbcSinkConfig.isUseJdbcBatch()) {
+                    executeBatch(swapList, currentBatch);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Flushed {} messages in {} ms", count, (System.nanoTime() - start) / 1000 / 1000);
+                    }
+                } else {
+                    connection.commit();
+                    swapList.forEach(Record::ack);
+                }
             } catch (Exception e) {
-                log.error("Got exception ", e.getMessage(), e);
+                log.error("Got exception {} after {} ms", e.getMessage(), (System.nanoTime() - start) / 1000 / 1000, e);
                 swapList.forEach(Record::fail);
             }
 
-            if (swapList.size() != count) {
-                log.error("Update count {} not match total number of records {}", count, swapList.size());
-            }
-
-            // finish flush
-            if (log.isDebugEnabled()) {
-                log.debug("Finish flush, queue size: {}", swapList.size());
-            }
-            swapList.clear();
             isFlushing.set(false);
+            if (needAnotherRound) {
+                flush();
+            }
         } else {
             if (log.isDebugEnabled()) {
                 log.debug("Already in flushing state, will not flush, queue size: {}", incomingList.size());
+            }
+        }
+    }
+
+    private void executeBatch(List<Record<T>> swapList, PreparedStatement statement) throws SQLException {
+        final int[] results = statement.executeBatch();
+        connection.commit();
+        int index = 0;
+        for (int r: results) {
+            if (r >= 0) {
+                swapList.remove(index++).ack();
+            } else {
+                log.info("got batch return value {}, failing message ", r);
+                swapList.remove(index++).fail();
             }
         }
     }

@@ -136,10 +136,10 @@ public class SqliteJdbcSinkTest {
         byte[] insertBytes = schema.encode(insertObj);
         CompletableFuture<Void> future = new CompletableFuture<>();
         Record<GenericObject> insertRecord = PulsarRecord.<GenericObject>builder()
-            .message(insertMessage)
-            .topicName("fake_topic_name")
-            .ackFunction(() -> future.complete(null))
-            .build();
+                .message(insertMessage)
+                .topicName("fake_topic_name")
+                .ackFunction(() -> future.complete(null))
+                .build();
 
         genericAvroSchema = new GenericAvroSchema(schema.getSchemaInfo());
         when(insertMessage.getValue()).thenReturn(genericAvroSchema.decode(insertBytes));
@@ -179,10 +179,10 @@ public class SqliteJdbcSinkTest {
         byte[] insertBytes = schema.encode(insertObj);
         CompletableFuture<Void> future = new CompletableFuture<>();
         Record<GenericObject> insertRecord = PulsarRecord.<GenericObject>builder()
-            .message(insertMessage)
-            .topicName("fake_topic_name")
-            .ackFunction(() -> future.complete(null))
-            .build();
+                .message(insertMessage)
+                .topicName("fake_topic_name")
+                .ackFunction(() -> future.complete(null))
+                .build();
 
         GenericSchema<GenericRecord> decodeSchema = GenericSchemaImpl.of(schema.getSchemaInfo());
         when(insertMessage.getValue()).thenReturn(decodeSchema.decode(insertBytes));
@@ -223,10 +223,10 @@ public class SqliteJdbcSinkTest {
         byte[] insertBytes = schema.encode(insertObj);
         CompletableFuture<Void> future = new CompletableFuture<>();
         Record<GenericObject> insertRecord = PulsarRecord.<GenericObject>builder()
-            .message(insertMessage)
-            .topicName("fake_topic_name")
-            .ackFunction(() -> future.complete(null))
-            .build();
+                .message(insertMessage)
+                .topicName("fake_topic_name")
+                .ackFunction(() -> future.complete(null))
+                .build();
 
         GenericSchema<GenericRecord> decodeSchema = GenericSchemaImpl.of(schema.getSchemaInfo());
         when(insertMessage.getValue()).thenReturn(decodeSchema.decode(insertBytes));
@@ -267,10 +267,10 @@ public class SqliteJdbcSinkTest {
         byte[] insertBytes = schema.encode(insertObj);
         CompletableFuture<Void> future = new CompletableFuture<>();
         Record<GenericObject> insertRecord = PulsarRecord.<GenericObject>builder()
-            .message(insertMessage)
-            .topicName("fake_topic_name")
-            .ackFunction(() -> future.complete(null))
-            .build();
+                .message(insertMessage)
+                .topicName("fake_topic_name")
+                .ackFunction(() -> future.complete(null))
+                .build();
 
         genericAvroSchema = new GenericAvroSchema(schema.getSchemaInfo());
         when(insertMessage.getValue()).thenReturn(genericAvroSchema.decode(insertBytes));
@@ -677,9 +677,9 @@ public class SqliteJdbcSinkTest {
         MockKeyValueGenericRecord genericObjectRecord = new MockKeyValueGenericRecord(keyValueSchema);
 
         sqliteUtils.createTable("CREATE TABLE " + tableName + " (" +
-                        "    key  TEXT," +
-                        "    string TEXT," +
-                        "PRIMARY KEY (key));"
+                "    key  TEXT," +
+                "    string TEXT," +
+                "PRIMARY KEY (key));"
         );
         String jdbcUrl = sqliteUtils.sqliteUri();
 
