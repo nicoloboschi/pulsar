@@ -41,6 +41,9 @@
       "pattern":"\\QMETA-INF/services/org.jline.terminal.spi.JnaSupport\\E"
     }, 
     {
+      "pattern":"\\Qcom/sun/jna/darwin-x86-64/libjnidispatch.jnilib\\E"
+    }, 
+    {
       "pattern":"\\Qio/prometheus/client/log4j2\\E"
     }, 
     {

@@ -71,6 +71,13 @@
   "allDeclaredFields":true
 },
 {
+  "name":"com.aayushatharva.brotli4j.Brotli4jLoader"
+},
+{
+  "name":"com.beust.jcommander.Parameterized",
+  "fields":[{"name":"field"}]
+},
+{
   "name":"com.beust.jcommander.converters.BooleanConverter",
   "queryAllDeclaredConstructors":true,
   "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
@@ -173,6 +180,13 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.sun.jna.CallbackProxy",
+  "methods":[{"name":"callback","parameterTypes":["java.lang.Object[]"] }]
+},
+{
+  "name":"com.sun.jndi.url.java.javaURLContextFactory"
+},
+{
   "name":"com.sun.management.GarbageCollectorMXBean",
   "queryAllPublicMethods":true
 },
@@ -226,22 +240,23 @@
 },
 {
   "name":"io.netty.channel.ChannelDuplexHandler",
-  "queriedMethods":[
+  "methods":[
     {"name":"bind","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.net.SocketAddress","io.netty.channel.ChannelPromise"] }, 
     {"name":"close","parameterTypes":["io.netty.channel.ChannelHandlerContext","io.netty.channel.ChannelPromise"] }, 
     {"name":"connect","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.net.SocketAddress","java.net.SocketAddress","io.netty.channel.ChannelPromise"] }, 
     {"name":"deregister","parameterTypes":["io.netty.channel.ChannelHandlerContext","io.netty.channel.ChannelPromise"] }, 
     {"name":"disconnect","parameterTypes":["io.netty.channel.ChannelHandlerContext","io.netty.channel.ChannelPromise"] }, 
-    {"name":"read","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }
+    {"name":"read","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
+    {"name":"write","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object","io.netty.channel.ChannelPromise"] }
   ]
 },
 {
   "name":"io.netty.channel.ChannelHandlerAdapter",
-  "queriedMethods":[{"name":"exceptionCaught","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Throwable"] }]
+  "methods":[{"name":"exceptionCaught","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Throwable"] }]
 },
 {
   "name":"io.netty.channel.ChannelInboundHandlerAdapter",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }, 
@@ -255,14 +270,14 @@
 },
 {
   "name":"io.netty.channel.ChannelInitializer",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelRegistered","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"exceptionCaught","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Throwable"] }
   ]
 },
 {
   "name":"io.netty.channel.ChannelOutboundHandlerAdapter",
-  "queriedMethods":[
+  "methods":[
     {"name":"bind","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.net.SocketAddress","io.netty.channel.ChannelPromise"] }, 
     {"name":"close","parameterTypes":["io.netty.channel.ChannelHandlerContext","io.netty.channel.ChannelPromise"] }, 
     {"name":"connect","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.net.SocketAddress","java.net.SocketAddress","io.netty.channel.ChannelPromise"] }, 
@@ -274,7 +289,7 @@
 },
 {
   "name":"io.netty.channel.CombinedChannelDuplexHandler",
-  "queriedMethods":[
+  "methods":[
     {"name":"bind","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.net.SocketAddress","io.netty.channel.ChannelPromise"] }, 
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
@@ -296,7 +311,7 @@
 },
 {
   "name":"io.netty.channel.DefaultChannelPipeline$HeadContext",
-  "queriedMethods":[
+  "methods":[
     {"name":"bind","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.net.SocketAddress","io.netty.channel.ChannelPromise"] }, 
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
@@ -318,7 +333,7 @@
 },
 {
   "name":"io.netty.channel.DefaultChannelPipeline$TailContext",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }, 
@@ -349,7 +364,7 @@
 },
 {
   "name":"io.netty.handler.codec.ByteToMessageDecoder",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }, 
     {"name":"channelReadComplete","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
@@ -361,11 +376,11 @@
 },
 {
   "name":"io.netty.handler.codec.MessageToMessageDecoder",
-  "queriedMethods":[{"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }]
+  "methods":[{"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }]
 },
 {
   "name":"io.netty.handler.codec.MessageToMessageEncoder",
-  "queriedMethods":[{"name":"write","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object","io.netty.channel.ChannelPromise"] }]
+  "methods":[{"name":"write","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object","io.netty.channel.ChannelPromise"] }]
 },
 {
   "name":"io.netty.handler.codec.dns.DatagramDnsQueryEncoder"
@@ -375,7 +390,7 @@
 },
 {
   "name":"io.netty.handler.codec.http.HttpContentDecoder",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelReadComplete","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }
   ]
@@ -384,8 +399,20 @@
   "name":"io.netty.handler.codec.http.HttpContentDecompressor"
 },
 {
+  "name":"io.netty.handler.flush.FlushConsolidationHandler",
+  "methods":[
+    {"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }, 
+    {"name":"channelReadComplete","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
+    {"name":"channelWritabilityChanged","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
+    {"name":"close","parameterTypes":["io.netty.channel.ChannelHandlerContext","io.netty.channel.ChannelPromise"] }, 
+    {"name":"disconnect","parameterTypes":["io.netty.channel.ChannelHandlerContext","io.netty.channel.ChannelPromise"] }, 
+    {"name":"exceptionCaught","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Throwable"] }, 
+    {"name":"flush","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }
+  ]
+},
+{
   "name":"io.netty.handler.stream.ChunkedWriteHandler",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelWritabilityChanged","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"flush","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
@@ -400,11 +427,14 @@
 },
 {
   "name":"io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }, 
     {"name":"exceptionCaught","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Throwable"] }
   ]
+},
+{
+  "name":"io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider"
 },
 {
   "name":"io.netty.util.AbstractReferenceCounted",
@@ -449,6 +479,9 @@
   "name":"io.prometheus.client.log4j2.InstrumentedAppender",
   "queryAllDeclaredMethods":true,
   "methods":[{"name":"createAppender","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"jakarta.servlet.Servlet"
 },
 {
   "name":"java.awt.image.RenderedImage"
@@ -503,7 +536,12 @@
 {
   "name":"java.lang.Object",
   "allDeclaredFields":true,
-  "queryAllDeclaredMethods":true
+  "queryAllDeclaredMethods":true,
+  "methods":[
+    {"name":"equals","parameterTypes":["java.lang.Object"] }, 
+    {"name":"hashCode","parameterTypes":[] }, 
+    {"name":"toString","parameterTypes":[] }
+  ]
 },
 {
   "name":"java.lang.ProcessHandle",
@@ -529,8 +567,46 @@
   "name":"java.lang.String"
 },
 {
+  "name":"java.lang.System",
+  "methods":[{"name":"console","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.Thread",
+  "methods":[{"name":"isVirtual","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.Throwable",
+  "methods":[{"name":"addSuppressed","parameterTypes":["java.lang.Throwable"] }]
+},
+{
   "name":"java.lang.Void",
   "fields":[{"name":"TYPE"}]
+},
+{
+  "name":"java.lang.invoke.MethodHandle",
+  "methods":[
+    {"name":"bindTo","parameterTypes":["java.lang.Object"] }, 
+    {"name":"invokeWithArguments","parameterTypes":["java.lang.Object[]"] }
+  ]
+},
+{
+  "name":"java.lang.invoke.MethodHandles",
+  "methods":[
+    {"name":"lookup","parameterTypes":[] }, 
+    {"name":"privateLookupIn","parameterTypes":["java.lang.Class","java.lang.invoke.MethodHandles$Lookup"] }
+  ]
+},
+{
+  "name":"java.lang.invoke.MethodHandles$Lookup",
+  "methods":[
+    {"name":"findSpecial","parameterTypes":["java.lang.Class","java.lang.String","java.lang.invoke.MethodType","java.lang.Class"] }, 
+    {"name":"in","parameterTypes":["java.lang.Class"] }, 
+    {"name":"unreflectSpecial","parameterTypes":["java.lang.reflect.Method","java.lang.Class"] }
+  ]
+},
+{
+  "name":"java.lang.invoke.MethodType",
+  "methods":[{"name":"methodType","parameterTypes":["java.lang.Class","java.lang.Class[]"] }]
 },
 {
   "name":"java.lang.management.BufferPoolMXBean",
@@ -578,7 +654,13 @@
 },
 {
   "name":"java.lang.management.PlatformLoggingMXBean",
-  "queryAllPublicMethods":true
+  "queryAllPublicMethods":true,
+  "methods":[
+    {"name":"getLoggerLevel","parameterTypes":["java.lang.String"] }, 
+    {"name":"getLoggerNames","parameterTypes":[] }, 
+    {"name":"getParentLoggerName","parameterTypes":["java.lang.String"] }, 
+    {"name":"setLoggerLevel","parameterTypes":["java.lang.String","java.lang.String"] }
+  ]
 },
 {
   "name":"java.lang.management.RuntimeMXBean",
@@ -590,7 +672,15 @@
 },
 {
   "name":"java.lang.management.ThreadInfo",
-  "queryAllPublicMethods":true
+  "queryAllPublicMethods":true,
+  "fields":[{"name":"virtual"}]
+},
+{
+  "name":"java.lang.reflect.Method",
+  "methods":[
+    {"name":"isDefault","parameterTypes":[] }, 
+    {"name":"isVarArgs","parameterTypes":[] }
+  ]
 },
 {
   "name":"java.math.BigDecimal"
@@ -619,25 +709,25 @@
 },
 {
   "name":"java.nio.ByteBuffer",
-  "queriedMethods":[{"name":"alignedSlice","parameterTypes":["int"] }]
+  "methods":[{"name":"alignedSlice","parameterTypes":["int"] }]
 },
 {
   "name":"java.nio.DirectByteBuffer",
-  "queriedMethods":[{"name":"<init>","parameterTypes":["long","int"] }]
+  "methods":[{"name":"<init>","parameterTypes":["long","int"] }]
 },
 {
   "name":"java.nio.channels.FileChannel"
 },
 {
   "name":"java.nio.channels.NetworkChannel",
-  "queriedMethods":[
+  "methods":[
     {"name":"getOption","parameterTypes":["java.net.SocketOption"] }, 
     {"name":"setOption","parameterTypes":["java.net.SocketOption","java.lang.Object"] }
   ]
 },
 {
   "name":"java.nio.channels.spi.SelectorProvider",
-  "queriedMethods":[{"name":"openSocketChannel","parameterTypes":["java.net.ProtocolFamily"] }]
+  "methods":[{"name":"openSocketChannel","parameterTypes":["java.net.ProtocolFamily"] }]
 },
 {
   "name":"java.security.AlgorithmParametersSpi"
@@ -662,12 +752,20 @@
   "methods":[{"name":"<init>","parameterTypes":["java.lang.String","java.lang.String"] }]
 },
 {
+  "name":"java.util.ServiceLoader",
+  "methods":[{"name":"load","parameterTypes":["java.lang.Class","java.lang.ClassLoader"] }]
+},
+{
   "name":"java.util.logging.LogManager",
   "methods":[{"name":"getLoggingMXBean","parameterTypes":[] }]
 },
 {
   "name":"java.util.logging.LoggingMXBean",
   "queryAllPublicMethods":true
+},
+{
+  "name":"java.util.zip.CRC32C",
+  "methods":[{"name":"updateBytes","parameterTypes":["int","byte[]","int","int"] }]
 },
 {
   "name":"javax.activation.DataSource"
@@ -683,7 +781,8 @@
 },
 {
   "name":"javax.management.MBeanOperationInfo",
-  "queryAllPublicMethods":true
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"getSignature","parameterTypes":[] }]
 },
 {
   "name":"javax.management.MBeanServerBuilder",
@@ -691,7 +790,7 @@
 },
 {
   "name":"javax.management.NotificationBroadcasterSupport",
-  "queriedMethods":[{"name":"getNotificationInfo","parameterTypes":[] }]
+  "methods":[{"name":"getNotificationInfo","parameterTypes":[] }]
 },
 {
   "name":"javax.management.ObjectName"
@@ -715,7 +814,7 @@
 {
   "name":"javax.security.auth.x500.X500Principal",
   "fields":[{"name":"thisX500Name"}],
-  "queriedMethods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
+  "methods":[{"name":"<init>","parameterTypes":["sun.security.x509.X500Name"] }]
 },
 {
   "name":"javax.servlet.Servlet"
@@ -994,6 +1093,9 @@
   "name":"org.apache.logging.log4j.core.async.AsyncLoggerConfig$RootLogger"
 },
 {
+  "name":"org.apache.logging.log4j.core.async.AsyncWaitStrategyFactoryConfig"
+},
+{
   "name":"org.apache.logging.log4j.core.async.DisruptorBlockingQueueFactory"
 },
 {
@@ -1027,12 +1129,26 @@
 {
   "name":"org.apache.logging.log4j.core.config.LoggerConfig",
   "queryAllDeclaredMethods":true,
-  "methods":[{"name":"createLogger","parameterTypes":["boolean","org.apache.logging.log4j.Level","java.lang.String","java.lang.String","org.apache.logging.log4j.core.config.AppenderRef[]","org.apache.logging.log4j.core.config.Property[]","org.apache.logging.log4j.core.config.Configuration","org.apache.logging.log4j.core.Filter"] }]
+  "methods":[
+    {"name":"createLogger","parameterTypes":["boolean","org.apache.logging.log4j.Level","java.lang.String","java.lang.String","org.apache.logging.log4j.core.config.AppenderRef[]","org.apache.logging.log4j.core.config.Property[]","org.apache.logging.log4j.core.config.Configuration","org.apache.logging.log4j.core.Filter"] }, 
+    {"name":"newBuilder","parameterTypes":[] }
+  ]
+},
+{
+  "name":"org.apache.logging.log4j.core.config.LoggerConfig$Builder",
+  "allDeclaredFields":true
 },
 {
   "name":"org.apache.logging.log4j.core.config.LoggerConfig$RootLogger",
   "queryAllDeclaredMethods":true,
-  "methods":[{"name":"createLogger","parameterTypes":["java.lang.String","org.apache.logging.log4j.Level","java.lang.String","org.apache.logging.log4j.core.config.AppenderRef[]","org.apache.logging.log4j.core.config.Property[]","org.apache.logging.log4j.core.config.Configuration","org.apache.logging.log4j.core.Filter"] }]
+  "methods":[
+    {"name":"createLogger","parameterTypes":["java.lang.String","org.apache.logging.log4j.Level","java.lang.String","org.apache.logging.log4j.core.config.AppenderRef[]","org.apache.logging.log4j.core.config.Property[]","org.apache.logging.log4j.core.config.Configuration","org.apache.logging.log4j.core.Filter"] }, 
+    {"name":"newRootBuilder","parameterTypes":[] }
+  ]
+},
+{
+  "name":"org.apache.logging.log4j.core.config.LoggerConfig$RootLogger$Builder",
+  "allDeclaredFields":true
 },
 {
   "name":"org.apache.logging.log4j.core.config.LoggersPlugin",
@@ -1047,7 +1163,10 @@
 {
   "name":"org.apache.logging.log4j.core.config.Property",
   "queryAllDeclaredMethods":true,
-  "methods":[{"name":"createProperty","parameterTypes":["java.lang.String","java.lang.String"] }]
+  "methods":[
+    {"name":"createProperty","parameterTypes":["java.lang.String","java.lang.String"] }, 
+    {"name":"createProperty","parameterTypes":["java.lang.String","java.lang.String","org.apache.logging.log4j.core.config.Configuration"] }
+  ]
 },
 {
   "name":"org.apache.logging.log4j.core.config.ScriptsPlugin"
@@ -1242,6 +1361,9 @@
 },
 {
   "name":"org.apache.logging.log4j.core.filter.MarkerFilter"
+},
+{
+  "name":"org.apache.logging.log4j.core.filter.MutableThreadContextMapFilter"
 },
 {
   "name":"org.apache.logging.log4j.core.filter.NoMarkerFilter"
@@ -1636,6 +1758,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"org.apache.logging.log4j.message.ReusableMessageFactory",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"org.apache.logging.log4j.util.internal.DefaultObjectInputFilter",
   "queryAllPublicMethods":true
 },
@@ -1856,6 +1982,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdClusters$UpdateClusterMigration",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdClusters$UpdateFailureDomain",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -1958,6 +2089,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdFunctions$ListBuiltInFunctions",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdFunctions$ListFunctions",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -1969,6 +2105,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdFunctions$NamespaceCommand",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdFunctions$ReloadBuiltInFunctions",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -2167,6 +2308,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdNamespaces$GetEncryptionRequired",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdNamespaces$GetEntryFiltersPerTopic",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -2396,6 +2542,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdNamespaces$RemoveEntryFiltersPerTopic",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdNamespaces$RemoveInactiveTopicPolicies",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -2557,6 +2708,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdNamespaces$SetEncryptionRequired",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdNamespaces$SetEntryFiltersPerTopic",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -3278,6 +3434,11 @@
   "methods":[{"name":"<init>","parameterTypes":["java.util.function.Supplier"] }]
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$GetAutoSubscriptionCreation",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$GetBacklogQuotaMap",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -3304,6 +3465,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$GetDispatchRate",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$GetEntryFiltersPerTopic",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -3398,6 +3564,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$RemoveAutoSubscriptionCreation",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$RemoveBacklogQuota",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -3424,6 +3595,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$RemoveDispatchRate",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$RemoveEntryFiltersPerTopic",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -3518,6 +3694,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$SetAutoSubscriptionCreation",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$SetBacklogQuota",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -3544,6 +3725,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$SetDispatchRate",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopicPolicies$SetEntryFiltersPerTopic",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -3644,6 +3830,11 @@
   "methods":[{"name":"<init>","parameterTypes":["java.util.function.Supplier"] }]
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$AnalyzeBacklog",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopics$ClearBacklog",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -3670,6 +3861,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTopics$CreatePartitionedCmd",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$CreateShadowTopic",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -3889,6 +4085,16 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$GetShadowSource",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$GetShadowTopics",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopics$GetStats",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -3900,6 +4106,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTopics$GetSubscriptionDispatchRate",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$GetSubscriptionProperties",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -4049,6 +4260,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$RemoveProperties",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopics$RemovePublishRate",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -4065,6 +4281,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTopics$RemoveRetention",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$RemoveShadowTopics",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -4209,6 +4430,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$SetShadowTopics",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopics$SetSubscribeRate",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -4249,6 +4475,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTopics$UpdateProperties",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTopics$UpdateSubscriptionProperties",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -4280,6 +4511,11 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.admin.cli.CmdTransactions$GetPositionStatsInPendingAck",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.admin.cli.CmdTransactions$GetSlowTransactions",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -4301,6 +4537,11 @@
 },
 {
   "name":"org.apache.pulsar.admin.cli.CmdTransactions$GetTransactionMetadata",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.admin.cli.CmdTransactions$ListTransactionCoordinators",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
 },
@@ -4328,7 +4569,7 @@
 },
 {
   "name":"org.apache.pulsar.client.admin.internal.OffloadProcessStatusImpl",
-  "queriedMethods":[{"name":"<init>","parameterTypes":["org.apache.pulsar.client.admin.LongRunningProcessStatus$Status","java.lang.String","org.apache.pulsar.client.api.MessageId"] }]
+  "methods":[{"name":"<init>","parameterTypes":["org.apache.pulsar.client.admin.LongRunningProcessStatus$Status","java.lang.String","org.apache.pulsar.client.api.MessageId"] }]
 },
 {
   "name":"org.apache.pulsar.client.admin.internal.PulsarAdminBuilderImpl",
@@ -4396,7 +4637,7 @@
 },
 {
   "name":"org.apache.pulsar.client.impl.ClientCnx",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"exceptionCaught","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Throwable"] }
@@ -4418,7 +4659,9 @@
     {"name":"getAuthParamMap","parameterTypes":[] }, 
     {"name":"getAuthParams","parameterTypes":[] }, 
     {"name":"getAuthPluginClassName","parameterTypes":[] }, 
+    {"name":"getAutoCertRefreshSeconds","parameterTypes":[] }, 
     {"name":"getConcurrentLookupRequest","parameterTypes":[] }, 
+    {"name":"getConnectionMaxIdleSeconds","parameterTypes":[] }, 
     {"name":"getConnectionTimeoutMs","parameterTypes":[] }, 
     {"name":"getConnectionsPerBroker","parameterTypes":[] }, 
     {"name":"getDnsLookupBindAddress","parameterTypes":[] }, 
@@ -4437,6 +4680,7 @@
     {"name":"getOperationTimeoutMs","parameterTypes":[] }, 
     {"name":"getProxyProtocol","parameterTypes":[] }, 
     {"name":"getProxyServiceUrl","parameterTypes":[] }, 
+    {"name":"getReadTimeoutMs","parameterTypes":[] }, 
     {"name":"getRequestTimeoutMs","parameterTypes":[] }, 
     {"name":"getServiceUrl","parameterTypes":[] }, 
     {"name":"getSocks5ProxyAddress","parameterTypes":[] }, 
@@ -4444,7 +4688,12 @@
     {"name":"getSocks5ProxyUsername","parameterTypes":[] }, 
     {"name":"getSslProvider","parameterTypes":[] }, 
     {"name":"getStatsIntervalSeconds","parameterTypes":[] }, 
+    {"name":"getTlsCertificateFilePath","parameterTypes":[] }, 
     {"name":"getTlsCiphers","parameterTypes":[] }, 
+    {"name":"getTlsKeyFilePath","parameterTypes":[] }, 
+    {"name":"getTlsKeyStorePassword","parameterTypes":[] }, 
+    {"name":"getTlsKeyStorePath","parameterTypes":[] }, 
+    {"name":"getTlsKeyStoreType","parameterTypes":[] }, 
     {"name":"getTlsProtocols","parameterTypes":[] }, 
     {"name":"getTlsTrustCertsFilePath","parameterTypes":[] }, 
     {"name":"getTlsTrustStorePassword","parameterTypes":[] }, 
@@ -4474,6 +4723,7 @@
     {"name":"getChunkMaxMessageSize","parameterTypes":[] }, 
     {"name":"getCompressionType","parameterTypes":[] }, 
     {"name":"getCryptoFailureAction","parameterTypes":[] }, 
+    {"name":"getEncryptionKeys","parameterTypes":[] }, 
     {"name":"getHashingScheme","parameterTypes":[] }, 
     {"name":"getInitialSequenceId","parameterTypes":[] }, 
     {"name":"getInitialSubscriptionName","parameterTypes":[] }, 
@@ -4502,11 +4752,11 @@
 },
 {
   "name":"org.apache.pulsar.common.protocol.ByteBufPair$Encoder",
-  "queriedMethods":[{"name":"write","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object","io.netty.channel.ChannelPromise"] }]
+  "methods":[{"name":"write","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object","io.netty.channel.ChannelPromise"] }]
 },
 {
   "name":"org.apache.pulsar.common.protocol.PulsarDecoder",
-  "queriedMethods":[{"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }]
+  "methods":[{"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }]
 },
 {
   "name":"org.apache.pulsar.policies.data.loadbalancer.LoadManagerReport"
@@ -4522,6 +4772,66 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.shell.ConfigShell",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigCreate",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigDelete",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigGetProperty",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigList",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigPut",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigSetProperty",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigUpdate",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigUse",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$CmdConfigView",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$Params",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.apache.pulsar.shell.ConfigShell$RunnableWithResult",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
   "name":"org.apache.pulsar.shell.PulsarShell$MainOptions",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true
@@ -4532,11 +4842,33 @@
   "queryAllDeclaredMethods":true
 },
 {
+  "name":"org.apache.pulsar.shell.config.ConfigStore$ConfigEntry",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[
+    {"name":"<init>","parameterTypes":[] }, 
+    {"name":"setName","parameterTypes":["java.lang.String"] }, 
+    {"name":"setValue","parameterTypes":["java.lang.String"] }
+  ]
+},
+{
+  "name":"org.apache.pulsar.shell.config.FileConfigStore$FileConfig",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[
+    {"name":"<init>","parameterTypes":[] }, 
+    {"name":"setConfigs","parameterTypes":["java.util.LinkedHashMap"] }, 
+    {"name":"setLast","parameterTypes":["java.lang.String"] }
+  ]
+},
+{
   "name":"org.asynchttpclient.netty.channel.ChannelManager$1"
 },
 {
   "name":"org.asynchttpclient.netty.handler.AsyncHttpClientHandler",
-  "queriedMethods":[
+  "methods":[
     {"name":"channelActive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelInactive","parameterTypes":["io.netty.channel.ChannelHandlerContext"] }, 
     {"name":"channelRead","parameterTypes":["io.netty.channel.ChannelHandlerContext","java.lang.Object"] }, 
@@ -4592,7 +4924,7 @@
 },
 {
   "name":"org.glassfish.jersey.inject.hk2.InstanceSupplierFactoryBridge",
-  "queriedMethods":[{"name":"provide","parameterTypes":[] }]
+  "methods":[{"name":"provide","parameterTypes":[] }]
 },
 {
   "name":"org.glassfish.jersey.inject.hk2.JerseyErrorService",
@@ -4613,6 +4945,10 @@
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true,
   "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.glassfish.jersey.internal.RuntimeDelegateImpl",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
@@ -4846,6 +5182,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"org.jline.console.SystemRegistry",
+  "methods":[{"name":"get","parameterTypes":[] }]
+},
+{
   "name":"org.jvnet.hk2.internal.DynamicConfigurationServiceImpl",
   "allDeclaredFields":true,
   "queryAllDeclaredMethods":true,
@@ -4858,6 +5198,12 @@
   "queryAllDeclaredMethods":true,
   "queryAllDeclaredConstructors":true,
   "methods":[{"name":"<init>","parameterTypes":["org.glassfish.hk2.api.ServiceLocator"] }]
+},
+{
+  "name":"org.osgi.framework.BundleReference"
+},
+{
+  "name":"org.slf4j.ext.EventData"
 },
 {
   "name":"sun.management.ClassLoadingImpl",
@@ -4894,13 +5240,16 @@
 {
   "name":"sun.misc.Unsafe",
   "allDeclaredFields":true,
-  "methods":[{"name":"invokeCleaner","parameterTypes":["java.nio.ByteBuffer"] }],
-  "queriedMethods":[
+  "methods":[
     {"name":"copyMemory","parameterTypes":["java.lang.Object","long","java.lang.Object","long","long"] }, 
     {"name":"getAndAddLong","parameterTypes":["java.lang.Object","long","long"] }, 
     {"name":"getAndSetObject","parameterTypes":["java.lang.Object","long","java.lang.Object"] }, 
+    {"name":"invokeCleaner","parameterTypes":["java.nio.ByteBuffer"] }, 
     {"name":"storeFence","parameterTypes":[] }
   ]
+},
+{
+  "name":"sun.misc.VM"
 },
 {
   "name":"sun.net.InetAddressCachePolicy",
