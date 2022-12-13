@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.pulsar.shell.config.ConfigStore;
@@ -292,6 +294,7 @@ public class PulsarShell {
             final String prompt = createPrompt(promptMessage);
             return new InteractiveLineReader() {
                 @Override
+                @SneakyThrows
                 public String readLine() {
                     return reader.readLine(prompt);
                 }
@@ -299,6 +302,11 @@ public class PulsarShell {
                 @Override
                 public List<String> parseLine(String line) {
                     return reader.getParser().parse(line, 0).words();
+                }
+
+                @Override
+                public void addCommandsInBuffer(List<String> commands) {
+                    reader.addCommandsInBuffer(commands);
                 }
             };
         }, (providerMap) -> terminal);
@@ -338,6 +346,8 @@ public class PulsarShell {
         String readLine();
 
         List<String> parseLine(String line);
+
+        void addCommandsInBuffer(List<String> commands);
     }
 
     public void run(Function<Map<String, ShellCommandsProvider>, InteractiveLineReader> readerBuilder,
@@ -355,6 +365,7 @@ public class PulsarShell {
         reader = readerBuilder.apply(providersMap);
         final Terminal terminal = terminalBuilder.apply(providersMap);
         final Map<String, String> variables = System.getenv();
+        final List<String> commandsInBuffer = new ArrayList<>();
 
         CommandReader commandReader;
         CommandsInfo commandsInfo = null;
@@ -410,7 +421,23 @@ public class PulsarShell {
             commandReader = () -> {
                 try {
                     final String line = reader.readLine().trim();
-                    return substituteVariables(reader.parseLine(line), variables);
+                    final String[] lines = line.split(System.lineSeparator());
+
+                    String toProcess = null;
+                    for (String l : lines) {
+                        if (l.isEmpty()) {
+                            continue;
+                        }
+                        if (toProcess == null) {
+                            toProcess = l;
+                        } else {
+                            commandsInBuffer.add(l);
+                        }
+                    }
+                    if (toProcess == null) {
+                        return Collections.emptyList();
+                    }
+                    return substituteVariables(reader.parseLine(toProcess), variables);
                 } catch (org.jline.reader.UserInterruptException
                         | org.jline.reader.EndOfFileException userInterruptException) {
                     throw new InterruptShellException();
@@ -421,6 +448,10 @@ public class PulsarShell {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> quit(terminal)));
         while (true) {
             execState = ExecState.IDLE;
+            if (!commandsInBuffer.isEmpty()) {
+                reader.addCommandsInBuffer(new ArrayList<>(commandsInBuffer));
+                commandsInBuffer.clear();
+            }
             final List<String> words;
             try {
                 words = commandReader.readCommand();

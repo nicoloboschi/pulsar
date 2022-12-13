@@ -80,8 +80,14 @@ public class PulsarShellTest {
         }
 
         @Override
+        public void addCommandsInBuffer(List<String> commands) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public List<String> parseLine(String line) {
             return getParser().parse(line, 0).words();
+
         }
     }
 
