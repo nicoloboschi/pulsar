@@ -20,8 +20,14 @@ package org.apache.pulsar.shell;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameters;
+import com.beust.jcommander.internal.Console;
+import com.beust.jcommander.internal.DefaultConsole;
 import java.util.Properties;
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.felix.service.command.Process;
 import org.apache.pulsar.admin.cli.PulsarAdminTool;
+import org.jline.terminal.Terminal;
 
 /**
  * Pulsar Admin tool extension for Pulsar shell.
@@ -30,7 +36,37 @@ import org.apache.pulsar.admin.cli.PulsarAdminTool;
 public class AdminShell extends PulsarAdminTool implements ShellCommandsProvider {
 
     public AdminShell(Properties properties) throws Exception {
+        this(properties, null);
+    }
+    public AdminShell(Properties properties, Terminal terminal) throws Exception {
         super(properties);
+        getJCommander().setConsole(new Console() {
+            @Override
+            @SneakyThrows
+            public void print(String msg) {
+                if ("1".equals(String.valueOf(FieldUtils.readField(Process.Utils.current(), "error", true)))) {
+                    System.err.print(msg);
+                } else {
+                    System.out.print(msg);
+                }
+            }
+
+            @Override
+            @SneakyThrows
+            public void println(String msg) {
+                if ("1".equals(String.valueOf(FieldUtils.readField(Process.Utils.current(), "error", true)))) {
+                    System.err.println(msg);
+                } else {
+                    System.out.println(msg);
+                }
+
+            }
+
+            @Override
+            public char[] readPassword(boolean echoInput) {
+                return new char[0];
+            }
+        });
     }
 
     @Override
@@ -64,6 +100,7 @@ public class AdminShell extends PulsarAdminTool implements ShellCommandsProvider
         rootParams = new RootParams();
         initRootParamsFromProperties(properties);
         initJCommander();
+        // getJCommander().setConsole(new DefaultConsole());
     }
 
 

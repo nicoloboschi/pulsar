@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,15 +19,23 @@
 package org.apache.pulsar.shell;
 
 import com.beust.jcommander.JCommander;
+import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import org.apache.felix.service.command.CommandSession;
+import org.apache.felix.service.command.Function;
+import org.apache.felix.service.command.Process;
 
 /**
  * Commands provider for Pulsar shell.
  */
-public interface ShellCommandsProvider {
+public interface ShellCommandsProvider extends Function {
 
     /**
      * Name of the commands. This will be used as program name.
+     *
      * @return
      */
     String getName();
@@ -35,6 +43,7 @@ public interface ShellCommandsProvider {
     /**
      * Current service url for connecting to brokers. If the provider doesn't need brokers connection
      * or the service url is not set it must return null.
+     *
      * @return service url
      */
     String getServiceUrl();
@@ -42,6 +51,7 @@ public interface ShellCommandsProvider {
     /**
      * Current admin url for connecting to pulsar admin. If the provider doesn't need brokers connection
      * or the admin url is not set it must return null.
+     *
      * @return admin url
      */
     String getAdminUrl();
@@ -50,6 +60,7 @@ public interface ShellCommandsProvider {
      * Init state before a command is executed.
      * If the implementing class rely on JCommander, it's suggested to not recycle JCommander
      * objects because they are meant to single-shot usage.
+     *
      * @param properties
      */
     void setupState(Properties properties);
@@ -58,12 +69,14 @@ public interface ShellCommandsProvider {
      * Cleanup state after a command is executed.
      * If the implementing class rely on JCommander, it's suggested to not recycle JCommander
      * objects because they are meant to single-shot usage.
+     *
      * @param properties
      */
     void cleanupState(Properties properties);
 
     /**
      * Return JCommander instance, if exists.
+     *
      * @return
      */
     JCommander getJCommander();
@@ -75,4 +88,25 @@ public interface ShellCommandsProvider {
      * @throws Exception if any error occurs. The shell session will not be closed.
      */
     boolean runCommand(String[] args) throws Exception;
+
+
+    @Override
+    default Object execute(CommandSession session, List<Object> arguments) throws Exception {
+        final PrintStream oldOut = System.out;
+        final PrintStream oldErr = System.err;
+        final Process current = Process.Utils.current();
+        System.setOut(current.out());
+        System.setErr(current.err());
+        try {
+            final String[] objects =
+                    arguments.stream().map(a -> a.toString()).collect(Collectors.toList()).toArray(new String[]{});
+            if (!runCommand(objects)) {
+                return false;
+            }
+            return true;
+        } finally {
+            System.setOut(oldOut);
+            System.setErr(oldErr);
+        }
+    }
 }

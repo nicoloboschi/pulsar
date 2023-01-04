@@ -62,7 +62,7 @@ add_maven_deps_to_classpath() {
     # Need to generate classpath from maven pom. This is costly so generate it
     # and cache it. Save the file into our target dir so a mvn clean will get
     # clean it up and force us create a new one.
-    f="${PULSAR_HOME}/distribution/server/target/classpath.txt"
+    f="${PULSAR_HOME}/distribution/shell/target/classpath.txt"
     if [ ! -f "${f}" ]
     then
     (

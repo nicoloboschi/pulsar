@@ -396,7 +396,7 @@ public abstract class NamespacesBase extends AdminResource {
     }
 
     // clear zk-node resources for deleting namespace
-    protected CompletableFuture<Void> internalClearZkSources() {
+    protected CompletableFuture<Void>   internalClearZkSources() {
         // clear resource of `/namespace/{namespaceName}` for zk-node
         return namespaceResources().deleteNamespaceAsync(namespaceName)
                 .thenCompose(ignore -> namespaceResources().getPartitionedTopicResources()

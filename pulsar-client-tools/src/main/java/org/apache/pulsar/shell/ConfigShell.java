@@ -43,6 +43,9 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.felix.service.command.Process;
+import org.apache.pulsar.CmdUtils;
+import org.apache.pulsar.admin.cli.CliCommand;
 import org.apache.pulsar.shell.config.ConfigStore;
 
 /**
@@ -484,21 +487,11 @@ public class ConfigShell implements ShellCommandsProvider {
 
 
     <T> void print(List<T> items) {
-        for (T item : items) {
-            print(item);
-        }
+        CmdUtils.print(items);
     }
 
     <T> void print(T item) {
-        try {
-            if (item instanceof String) {
-                jcommander.getConsole().println((String) item);
-            } else {
-                jcommander.getConsole().println(writer.writeValueAsString(item));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        CmdUtils.print(item);
     }
 
 }

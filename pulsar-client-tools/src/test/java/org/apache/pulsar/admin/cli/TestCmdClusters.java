@@ -18,6 +18,7 @@
  */
 package org.apache.pulsar.admin.cli;
 
+import org.apache.pulsar.CmdUtils;
 import org.apache.pulsar.client.api.ProxyProtocol;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,7 +29,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Files;
-import org.apache.pulsar.admin.cli.utils.CmdUtils;
 import org.apache.pulsar.common.policies.data.ClusterData;
 import org.apache.pulsar.client.admin.Clusters;
 import org.apache.pulsar.client.admin.PulsarAdmin;

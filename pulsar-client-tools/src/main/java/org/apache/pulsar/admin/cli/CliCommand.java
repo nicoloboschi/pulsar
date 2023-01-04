@@ -19,14 +19,13 @@
 package org.apache.pulsar.admin.cli;
 
 import com.beust.jcommander.ParameterException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.apache.pulsar.CmdUtils;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
@@ -34,9 +33,9 @@ import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.AuthAction;
-import org.apache.pulsar.common.util.ObjectMapperFactory;
+import org.apache.pulsar.shell.ShellCommand;
 
-public abstract class CliCommand {
+public abstract class CliCommand extends ShellCommand {
 
     static String[] validatePropertyCluster(List<String> params) {
         return splitParameter(params, 2);
@@ -190,31 +189,16 @@ public abstract class CliCommand {
     }
 
     <T> void print(List<T> items) {
-        for (T item : items) {
-            print(item);
-        }
+        CmdUtils.print(items);
     }
 
     <K, V> void print(Map<K, V> items) {
-        for (Map.Entry<K, V> entry : items.entrySet()) {
-            print(entry.getKey() + "    " + entry.getValue());
-        }
+        CmdUtils.print(items);
     }
-
     <T> void print(T item) {
-        try {
-            if (item instanceof String) {
-                System.out.println(item);
-            } else {
-                System.out.println(writer.writeValueAsString(item));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        CmdUtils.print(item);
     }
 
-    private static ObjectMapper mapper = ObjectMapperFactory.create();
-    private static ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
     private static Set<Character> sizeUnit = Sets.newHashSet('k', 'K', 'm', 'M', 'g', 'G', 't', 'T');
 
     abstract void run() throws Exception;

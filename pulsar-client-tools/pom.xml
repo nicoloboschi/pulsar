@@ -135,6 +135,22 @@
       <version>${jline3.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.jline</groupId>
+      <artifactId>jline-groovy</artifactId>
+      <version>${jline3.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.gogo.runtime</artifactId>
+      <version>1.1.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.gogo.jline</artifactId>
+      <version>1.1.8</version>
+    </dependency>
+    <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
       <scope>runtime</scope>

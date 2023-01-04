@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.function.Supplier;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.pulsar.admin.cli.utils.CmdUtils;
+import org.apache.pulsar.CmdUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.ProxyProtocol;
