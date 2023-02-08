@@ -38,7 +38,8 @@ import java.io.IOException;
 import java.util.Set;
 
 /**
- * Servlet filter that hooks up with AuthenticationService to reject unauthenticated HTTP requests.
+ * Servlet filter that authorize the request only if the client role matches the configured set of roles.
+ * Super users are always authorized.
  */
 public abstract class FixedRolesBasedAuthorizationFilter implements Filter {
     private static final Logger LOG = LoggerFactory.getLogger(FixedRolesBasedAuthorizationFilter.class);

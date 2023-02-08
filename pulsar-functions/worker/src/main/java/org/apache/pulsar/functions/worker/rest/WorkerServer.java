@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletRequest;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;

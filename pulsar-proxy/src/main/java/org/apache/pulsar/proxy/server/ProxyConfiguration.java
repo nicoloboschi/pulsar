@@ -385,8 +385,8 @@ public class ProxyConfiguration implements PulsarConfiguration {
 
     @FieldContext(
             category = CATEGORY_AUTHORIZATION,
-            doc = "A list of role names (a comma-separated list of strings) able to retrieve metrics" +
-                    " and system stats from the web server endpoints."
+            doc = "A list of role names (a comma-separated list of strings) able to retrieve metrics"
+                    + " and system stats from the web server endpoints."
     )
     private Set<String> metricsRoles = new TreeSet<>();
 

@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Optional;
 import javax.servlet.DispatcherType;
 import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
@@ -165,7 +164,8 @@ public class WebServer {
 
     private static class MetricsRoleAuthorizationFilter extends FixedRolesBasedAuthorizationFilter {
 
-        public MetricsRoleAuthorizationFilter(ProxyConfiguration configuration, AuthorizationService authorizationService) {
+        public MetricsRoleAuthorizationFilter(ProxyConfiguration configuration,
+                                              AuthorizationService authorizationService) {
             super(configuration.getMetricsRoles(), authorizationService);
         }
 
