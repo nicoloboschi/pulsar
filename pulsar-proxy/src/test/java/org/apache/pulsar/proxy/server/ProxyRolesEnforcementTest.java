@@ -20,26 +20,20 @@ package org.apache.pulsar.proxy.server;
 
 import static org.mockito.Mockito.spy;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.util.HashMap;
+
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import javax.naming.AuthenticationException;
-import org.apache.pulsar.broker.ServiceConfiguration;
-import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
-import org.apache.pulsar.broker.authentication.AuthenticationProvider;
+
 import org.apache.pulsar.broker.authentication.AuthenticationService;
 import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.Authentication;
-import org.apache.pulsar.client.api.AuthenticationDataProvider;
 import org.apache.pulsar.client.api.ProducerConsumerBase;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.common.configuration.PulsarConfigurationLoader;
 import org.apache.pulsar.common.policies.data.AuthAction;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthentication;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthenticationProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -49,94 +43,6 @@ import org.testng.annotations.Test;
 
 public class ProxyRolesEnforcementTest extends ProducerConsumerBase {
     private static final Logger log = LoggerFactory.getLogger(ProxyRolesEnforcementTest.class);
-
-    public static class BasicAuthenticationData implements AuthenticationDataProvider {
-        private final String authParam;
-
-        public BasicAuthenticationData(String authParam) {
-            this.authParam = authParam;
-        }
-
-        public boolean hasDataFromCommand() {
-            return true;
-        }
-
-        public String getCommandData() {
-            return authParam;
-        }
-
-        public boolean hasDataForHttp() {
-            return true;
-        }
-
-        @Override
-        public Set<Entry<String, String>> getHttpHeaders() {
-            Map<String, String> headers = new HashMap<>();
-            headers.put("BasicAuthentication", authParam);
-            return headers.entrySet();
-        }
-    }
-
-    public static class BasicAuthentication implements Authentication {
-
-        private String authParam;
-
-        @Override
-        public void close() throws IOException {
-            // noop
-        }
-
-        @Override
-        public String getAuthMethodName() {
-            return "BasicAuthentication";
-        }
-
-        @Override
-        public AuthenticationDataProvider getAuthData() throws PulsarClientException {
-            try {
-                return new BasicAuthenticationData(authParam);
-            } catch (Exception e) {
-                throw new PulsarClientException(e);
-            }
-        }
-
-        @Override
-        public void configure(Map<String, String> authParams) {
-            this.authParam = authParams.get("authParam");
-        }
-
-        @Override
-        public void start() throws PulsarClientException {
-            // noop
-        }
-    }
-
-    public static class BasicAuthenticationProvider implements AuthenticationProvider {
-
-        @Override
-        public void close() throws IOException {
-        }
-
-        @Override
-        public void initialize(ServiceConfiguration config) throws IOException {
-        }
-
-        @Override
-        public String getAuthMethodName() {
-            return "BasicAuthentication";
-        }
-
-        @Override
-        public String authenticate(AuthenticationDataSource authData) throws AuthenticationException {
-            if (authData.hasDataFromCommand()) {
-                return authData.getCommandData();
-            } else if (authData.hasDataFromHttp()) {
-                return authData.getHttpHeader("BasicAuthentication");
-            }
-
-            return null;
-        }
-    }
 
     @BeforeMethod
     @Override
@@ -217,9 +123,7 @@ public class ProxyRolesEnforcementTest extends ProducerConsumerBase {
         providers.add(BasicAuthenticationProvider.class.getName());
         proxyConfig.setAuthenticationProviders(providers);
 
-        try (ProxyService proxyService = new ProxyService(proxyConfig,
-                new AuthenticationService(
-                        PulsarConfigurationLoader.convertFrom(proxyConfig)))) {
+        try (ProxyService proxyService = new ProxyService(proxyConfig)) {
             proxyService.start();
 
 

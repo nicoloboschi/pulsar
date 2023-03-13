@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.ServiceConfigurationUtils;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
 import org.apache.pulsar.broker.authorization.AuthorizationService;
@@ -82,6 +83,7 @@ import org.slf4j.LoggerFactory;
 public class ProxyService implements Closeable {
 
     private final ProxyConfiguration proxyConfig;
+    private final ServiceConfiguration serviceConfiguration;
     private final Authentication proxyClientAuthentication;
     @Getter
     private final DnsAddressResolverGroup dnsAddressResolverGroup;
@@ -90,10 +92,10 @@ public class ProxyService implements Closeable {
     private String serviceUrl;
     private String serviceUrlTls;
     private final AuthenticationService authenticationService;
-    private AuthorizationService authorizationService;
-    private MetadataStoreExtended localMetadataStore;
-    private MetadataStoreExtended configMetadataStore;
-    private PulsarResources pulsarResources;
+    private final AuthorizationService authorizationService;
+    private final MetadataStoreExtended localMetadataStore;
+    private final MetadataStoreExtended configMetadataStore;
+    private final PulsarResources pulsarResources;
     @Getter
     private ProxyExtensions proxyExtensions = null;
 
@@ -151,10 +153,10 @@ public class ProxyService implements Closeable {
     @Getter
     private final ConnectionController connectionController;
 
-    public ProxyService(ProxyConfiguration proxyConfig,
-                        AuthenticationService authenticationService) throws Exception {
+    public ProxyService(ProxyConfiguration proxyConfig) throws Exception {
         requireNonNull(proxyConfig);
         this.proxyConfig = proxyConfig;
+        this.serviceConfiguration = PulsarConfigurationLoader.convertFrom(proxyConfig);
         this.clientCnxs = Sets.newConcurrentHashSet();
         this.topicStats = new ConcurrentHashMap<>();
 
@@ -170,7 +172,26 @@ public class ProxyService implements Closeable {
                 false, acceptorThreadFactory);
         this.workerGroup = EventLoopUtil.newEventLoopGroup(proxyConfig.getNumIOThreads(),
                 false, workersThreadFactory);
-        this.authenticationService = authenticationService;
+
+        if (proxyConfig.isAuthorizationEnabled() && !proxyConfig.isAuthenticationEnabled()) {
+            throw new IllegalStateException("Invalid proxy configuration. Authentication must be enabled with "
+                    + "authenticationEnabled=true when authorization is enabled with authorizationEnabled=true.");
+        }
+        this.authenticationService = new AuthenticationService(serviceConfiguration);
+        if (!isBlank(proxyConfig.getMetadataStoreUrl()) && !isBlank(proxyConfig.getConfigurationMetadataStoreUrl())) {
+            localMetadataStore = createLocalMetadataStore();
+            configMetadataStore = createConfigurationMetadataStore();
+            pulsarResources = new PulsarResources(localMetadataStore, configMetadataStore);
+            discoveryProvider = new BrokerDiscoveryProvider(this.proxyConfig, pulsarResources);
+            authorizationService = new AuthorizationService(PulsarConfigurationLoader.convertFrom(proxyConfig),
+                    pulsarResources);
+        } else {
+            localMetadataStore = null;
+            configMetadataStore = null;
+            pulsarResources = null;
+            discoveryProvider = null;
+            authorizationService = null;
+        }
 
         DnsNameResolverBuilder dnsNameResolverBuilder = new DnsNameResolverBuilder()
                 .channelType(EventLoopUtil.getDatagramChannelClass(workerGroup));
@@ -213,20 +234,6 @@ public class ProxyService implements Closeable {
     }
 
     public void start() throws Exception {
-        if (proxyConfig.isAuthorizationEnabled() && !proxyConfig.isAuthenticationEnabled()) {
-            throw new IllegalStateException("Invalid proxy configuration. Authentication must be enabled with "
-                    + "authenticationEnabled=true when authorization is enabled with authorizationEnabled=true.");
-        }
-
-        if (!isBlank(proxyConfig.getMetadataStoreUrl()) && !isBlank(proxyConfig.getConfigurationMetadataStoreUrl())) {
-            localMetadataStore = createLocalMetadataStore();
-            configMetadataStore = createConfigurationMetadataStore();
-            pulsarResources = new PulsarResources(localMetadataStore, configMetadataStore);
-            discoveryProvider = new BrokerDiscoveryProvider(this.proxyConfig, pulsarResources);
-            authorizationService = new AuthorizationService(PulsarConfigurationLoader.convertFrom(proxyConfig),
-                    pulsarResources);
-        }
-
         ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.option(ChannelOption.SO_REUSEADDR, true);
         bootstrap.childOption(ChannelOption.ALLOCATOR, PulsarByteBufAllocator.DEFAULT);

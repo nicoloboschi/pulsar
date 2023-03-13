@@ -119,9 +119,7 @@ public class ProxyWithoutServiceDiscoveryTest extends ProducerConsumerBase {
 
         proxyConfig.setAuthenticationProviders(providers);
 
-        proxyService = Mockito.spy(new ProxyService(proxyConfig,
-                                                    new AuthenticationService(
-                                                            PulsarConfigurationLoader.convertFrom(proxyConfig))));
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
 
         proxyService.start();
     }

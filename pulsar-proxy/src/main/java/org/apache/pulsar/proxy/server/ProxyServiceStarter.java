@@ -198,12 +198,10 @@ public class ProxyServiceStarter {
     }
 
     public void start() throws Exception {
-        AuthenticationService authenticationService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(config));
         // create proxy service
-        proxyService = new ProxyService(config, authenticationService);
+        proxyService = new ProxyService(config);
         // create a web-service
-        server = new WebServer(config, authenticationService);
+        server = new WebServer(config, proxyService.getAuthenticationService(), proxyService.getAuthorizationService());
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::close));
 
@@ -259,12 +257,18 @@ public class ProxyServiceStarter {
         if (service != null) {
             PrometheusMetricsServlet metricsServlet = service.getMetricsServlet();
             if (metricsServlet != null) {
+                final boolean authenticateMetricsEndpoint = config.isAuthenticateMetricsEndpoint();
                 server.addServlet("/metrics", new ServletHolder(metricsServlet),
-                        Collections.emptyList(), config.isAuthenticateMetricsEndpoint());
+                        Collections.emptyList(), authenticateMetricsEndpoint, authenticateMetricsEndpoint);
             }
         }
-        server.addRestResource("/", VipStatus.ATTRIBUTE_STATUS_FILE_PATH, config.getStatusFilePath(), VipStatus.class);
-        server.addRestResource("/proxy-stats", ProxyStats.ATTRIBUTE_PULSAR_PROXY_NAME, service, ProxyStats.class);
+        server.addRestResource("/", VipStatus.ATTRIBUTE_STATUS_FILE_PATH,
+                config.getStatusFilePath(), VipStatus.class, false, false);
+        if (config.isExposeProxyStatsEndpoint()) {
+            server.addRestResource("/proxy-stats",
+                    ProxyStats.ATTRIBUTE_PULSAR_PROXY_NAME, service,
+                    ProxyStats.class, true, true);
+        }
 
         AdminProxyHandler adminProxyHandler = new AdminProxyHandler(config, discoveryProvider);
         ServletHolder servletHolder = new ServletHolder(adminProxyHandler);

@@ -45,7 +45,7 @@ public class MockAuthenticationProvider implements AuthenticationProvider {
     public String authenticate(AuthenticationDataSource authData) throws AuthenticationException {
         String principal = "unknown";
         if (authData.hasDataFromHttp()) {
-            principal = authData.getHttpHeader("mockuser");
+            principal = authData.getHttpHeader(MockAuthentication.HTTP_HEADER_USER);
         } else if (authData.hasDataFromCommand()) {
             principal = authData.getCommandData();
         }

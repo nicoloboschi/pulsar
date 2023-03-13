@@ -32,8 +32,7 @@ public class InvalidProxyConfigForAuthorizationTest {
         ProxyConfiguration proxyConfiguration = new ProxyConfiguration();
         proxyConfiguration.setAuthorizationEnabled(true);
         proxyConfiguration.setAuthenticationEnabled(false);
-        try (ProxyService proxyService = new ProxyService(proxyConfiguration,
-                Mockito.mock(AuthenticationService.class))) {
+        try (ProxyService proxyService = new ProxyService(proxyConfiguration)) {
             proxyService.start();
             fail("An exception should have been thrown");
         } catch (Exception e) {

@@ -101,7 +101,7 @@ public class ProxyStats {
     @GET
     @Path("/logging")
     @ApiOperation(hidden = true, value = "Get proxy logging")
-    public int getProxyLogLevel(@PathParam("logLevel") int logLevel) {
+    public int getProxyLogLevel() {
         return proxyService().getProxyLogLevel();
     }
 

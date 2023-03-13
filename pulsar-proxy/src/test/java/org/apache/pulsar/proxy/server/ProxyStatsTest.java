@@ -20,32 +20,41 @@ package org.apache.pulsar.proxy.server;
 
 import static java.util.Objects.requireNonNull;
 import static org.mockito.Mockito.doReturn;
-import static org.testng.Assert.assertEquals;
+import static org.mockito.Mockito.spy;
 import static org.testng.Assert.assertNotNull;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import lombok.Cleanup;
 import org.apache.pulsar.broker.ServiceConfiguration;
-import org.apache.pulsar.broker.auth.MockedPulsarServiceBaseTest;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
+import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageRoutingMode;
 import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.ProducerConsumerBase;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.configuration.PulsarConfigurationLoader;
+import org.apache.pulsar.common.policies.data.AuthAction;
 import org.apache.pulsar.metadata.impl.ZKMetadataStore;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthentication;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthenticationData;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthenticationProvider;
 import org.apache.pulsar.proxy.stats.ConnectionStats;
 import org.apache.pulsar.proxy.stats.TopicStats;
 import org.glassfish.jersey.client.ClientConfig;
@@ -56,40 +65,95 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class ProxyStatsTest extends MockedPulsarServiceBaseTest {
+public abstract class ProxyStatsTest extends ProducerConsumerBase {
 
     private ProxyService proxyService;
     private WebServer proxyWebServer;
-    private final ProxyConfiguration proxyConfig = new ProxyConfiguration();
+    private Client httpClient;
 
+    private final boolean authEnabled;
+
+    public ProxyStatsTest(boolean authEnabled) {
+        this.authEnabled = authEnabled;
+    }
+
+    @BeforeClass(alwaysRun = true)
     @Override
-    @BeforeClass
     protected void setup() throws Exception {
-        internalSetup();
+        if (authEnabled) {
+            conf.setAuthenticationEnabled(true);
+            conf.setAuthorizationEnabled(true);
+            conf.setBrokerClientAuthenticationPlugin(BasicAuthentication.class.getName());
+            conf.setBrokerClientAuthenticationParameters("authParam:admin");
+            conf.setAuthenticateOriginalAuthData(false);
+
+
+            Set<String> superUserRoles = new HashSet<String>();
+            superUserRoles.add("admin");
+            superUserRoles.add("proxy");
+            conf.setSuperUserRoles(superUserRoles);
+
+            Set<String> providers = new HashSet<String>();
+            providers.add(BasicAuthenticationProvider.class.getName());
+            conf.setAuthenticationProviders(providers);
+            Set<String> proxyRoles = new HashSet<String>();
+            proxyRoles.add("proxy");
+            conf.setProxyRoles(proxyRoles);
+        }
+        conf.setClusterName("test");
+
+        super.init();
+
+
+        if (authEnabled) {
+            String adminAuthParams = "authParam:admin";
+            admin = spy(PulsarAdmin.builder().serviceHttpUrl(brokerUrl.toString())
+                    .authentication(BasicAuthentication.class.getName(), adminAuthParams).build());
+        }
+        producerBaseSetup();
+
+
+        if (authEnabled) {
+
+            String namespaceName = "my-property/my-ns";
+            admin.namespaces().grantPermissionOnNamespace(namespaceName, "client",
+                    Sets.newHashSet(AuthAction.consume, AuthAction.produce));
+        }
+
+        ProxyConfiguration proxyConfig = new ProxyConfiguration();
 
         proxyConfig.setServicePort(Optional.of(0));
         proxyConfig.setBrokerProxyAllowedTargetPorts("*");
         proxyConfig.setWebServicePort(Optional.of(0));
+        proxyConfig.setBrokerServiceURL(pulsar.getBrokerServiceUrl());
         proxyConfig.setMetadataStoreUrl(DUMMY_VALUE);
         proxyConfig.setConfigurationMetadataStoreUrl(GLOBAL_DUMMY_VALUE);
-        // enable full parsing feature
         proxyConfig.setProxyLogLevel(Optional.of(2));
+        if (authEnabled) {
+            proxyConfig.setSuperUserRoles(Set.of("admin"));
+            proxyConfig.setAuthenticationEnabled(true);
+            proxyConfig.setAuthorizationEnabled(true);
+            proxyConfig.setBrokerClientAuthenticationPlugin(BasicAuthentication.class.getName());
+            String proxyAuthParams = "authParam:proxy";
+            proxyConfig.setBrokerClientAuthenticationParameters(proxyAuthParams);
+            Set<String> providers = new HashSet<String>();
+            providers.add(BasicAuthenticationProvider.class.getName());
+            proxyConfig.setAuthenticationProviders(providers);
+            proxyConfig.setForwardAuthorizationCredentials(true);
+        }
 
-        proxyService = Mockito.spy(new ProxyService(proxyConfig,
-                new AuthenticationService(PulsarConfigurationLoader.convertFrom(proxyConfig))));
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
         doReturn(new ZKMetadataStore(mockZooKeeper)).when(proxyService).createLocalMetadataStore();
         doReturn(new ZKMetadataStore(mockZooKeeperGlobal)).when(proxyService).createConfigurationMetadataStore();
-
-        Optional<Integer> proxyLogLevel = Optional.of(2);
-        assertEquals(proxyLogLevel, proxyService.getConfiguration().getProxyLogLevel());
         proxyService.start();
 
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        proxyWebServer = new WebServer(proxyConfig, authService);
+        proxyWebServer = new WebServer(proxyService);
         ProxyServiceStarter.addWebServerHandlers(proxyWebServer, proxyConfig, proxyService, null);
         proxyWebServer.start();
+
+        httpClient = ClientBuilder
+                .newClient(new ClientConfig().register(LoggingFeature.class));
+
     }
 
     @Override
@@ -106,23 +170,20 @@ public class ProxyStatsTest extends MockedPulsarServiceBaseTest {
     protected void cleanup() throws Exception {
         internalCleanup();
         proxyService.close();
+        httpClient.close();
     }
 
-    /**
-     * Validates proxy connection stats api.
-     *
-     * @throws Exception
-     */
     @Test
     public void testConnectionsStats() throws Exception {
-        final String topicName1 = "persistent://sample/test/local/connections-stats";
+        String topicName1 = "persistent://my-property/my-ns/my-topic1";
+
         @Cleanup
-        PulsarClient client = PulsarClient.builder().serviceUrl(proxyService.getServiceUrl()).build();
+        PulsarClient client = createPulsarClient();
         Producer<byte[]> producer = client.newProducer(Schema.BYTES).topic(topicName1).enableBatching(false)
                 .messageRoutingMode(MessageRoutingMode.SinglePartition).create();
 
-        // Create a consumer directly attached to broker
-        Consumer<byte[]> consumer = pulsarClient.newConsumer().topic(topicName1).subscriptionName("my-sub").subscribe();
+        @Cleanup
+        Consumer<byte[]> consumer = client.newConsumer().topic(topicName1).subscriptionName("my-sub").subscribe();
 
         int totalMessages = 10;
         for (int i = 0; i < totalMessages; i++) {
@@ -134,43 +195,50 @@ public class ProxyStatsTest extends MockedPulsarServiceBaseTest {
             requireNonNull(msg);
             consumer.acknowledge(msg);
         }
-
-        @Cleanup
-        Client httpClient = ClientBuilder.newClient(new ClientConfig().register(LoggingFeature.class));
-        Response r = httpClient.target(proxyWebServer.getServiceUri()).path("/proxy-stats/connections").request()
-                .get();
-        Assert.assertEquals(r.getStatus(), Response.Status.OK.getStatusCode());
-        String response = r.readEntity(String.class).trim();
-        List<ConnectionStats> connectionStats = new Gson().fromJson(response, new TypeToken<List<ConnectionStats>>() {
-        }.getType());
-
-        assertNotNull(connectionStats);
-
-        consumer.close();
+        if (authEnabled) {
+            assertGetConnectionStats(null, false);
+            assertGetConnectionStats("notexists", false);
+            assertGetConnectionStats("client", false);
+            assertGetConnectionStats("admin", true);
+        } else {
+            assertGetConnectionStats(null, true);
+        }
     }
 
-    /**
-     * Validate proxy topic stats api
-     *
-     * @throws Exception
-     */
+    private void assertGetConnectionStats(String role, boolean expectOk) {
+        if (!expectOk) {
+            Assert.assertEquals(httpBuilder("/proxy-stats/connections", role).get()
+                    .getStatus(), Response.Status.FORBIDDEN.getStatusCode());
+        } else {
+            Response r = httpBuilder("/proxy-stats/connections", role).get();
+            Assert.assertEquals(r.getStatus(), Response.Status.OK.getStatusCode());
+            String response = r.readEntity(String.class).trim();
+            List<ConnectionStats> connectionStats = new Gson().fromJson(response, new TypeToken<List<ConnectionStats>>() {
+            }.getType());
+            assertNotNull(connectionStats);
+        }
+    }
+
     @Test
     public void testTopicStats() throws Exception {
         proxyService.setProxyLogLevel(2);
-        final String topicName = "persistent://sample/test/local/topic-stats";
-        final String topicName2 = "persistent://sample/test/local/topic-stats-2";
+        final String topicName = "persistent://my-property/my-ns/my-topic1";
+        final String topicName2 = "persistent://my-property/my-ns/my-topic2";
 
         @Cleanup
-        PulsarClient client = PulsarClient.builder().serviceUrl(proxyService.getServiceUrl()).build();
+        PulsarClient client = createPulsarClient();
+        @Cleanup
         Producer<byte[]> producer1 = client.newProducer(Schema.BYTES).topic(topicName).enableBatching(false)
                 .producerName("producer1").messageRoutingMode(MessageRoutingMode.SinglePartition).create();
 
+        @Cleanup
         Producer<byte[]> producer2 = client.newProducer(Schema.BYTES).topic(topicName2).enableBatching(false)
                 .producerName("producer2").messageRoutingMode(MessageRoutingMode.SinglePartition).create();
 
-        // Create a consumer directly attached to broker
-        Consumer<byte[]> consumer = pulsarClient.newConsumer().topic(topicName).subscriptionName("my-sub").subscribe();
-        Consumer<byte[]> consumer2 = pulsarClient.newConsumer().topic(topicName2).subscriptionName("my-sub")
+        @Cleanup
+        Consumer<byte[]> consumer = client.newConsumer().topic(topicName).subscriptionName("my-sub").subscribe();
+        @Cleanup
+        Consumer<byte[]> consumer2 = client.newConsumer().topic(topicName2).subscriptionName("my-sub")
                 .subscribe();
 
         int totalMessages = 10;
@@ -185,37 +253,101 @@ public class ProxyStatsTest extends MockedPulsarServiceBaseTest {
             consumer.acknowledge(msg);
             msg = consumer2.receive(1, TimeUnit.SECONDS);
         }
-
-        @Cleanup
-        Client httpClient = ClientBuilder.newClient(new ClientConfig().register(LoggingFeature.class));
-        Response r = httpClient.target(proxyWebServer.getServiceUri()).path("/proxy-stats/topics").request()
-                .get();
-        Assert.assertEquals(r.getStatus(), Response.Status.OK.getStatusCode());
-        String response = r.readEntity(String.class).trim();
-        Map<String, TopicStats> topicStats = new Gson().fromJson(response, new TypeToken<Map<String, TopicStats>>() {
-        }.getType());
-
-        assertNotNull(topicStats.get(topicName));
-
-        consumer.close();
-        consumer2.close();
+        if (authEnabled) {
+            assertGetTopicsStats(topicName, null, false);
+            assertGetTopicsStats(topicName, "notexists", false);
+            assertGetTopicsStats(topicName, "client", false);
+            assertGetTopicsStats(topicName, "admin", true);
+        } else {
+            assertGetTopicsStats(topicName, null, true);
+        }
     }
 
-    /**
-     * Change proxy log level dynamically
-     *
-     * @throws Exception
-     */
+    private void assertGetTopicsStats(String topicName, String role, boolean expectOk) {
+        if (!expectOk) {
+            Assert.assertEquals(httpBuilder("/proxy-stats/topics", role).get()
+                    .getStatus(), Response.Status.FORBIDDEN.getStatusCode());
+
+        } else {
+            Response r = httpBuilder("/proxy-stats/topics", role).get();
+            Assert.assertEquals(r.getStatus(), Response.Status.OK.getStatusCode());
+            String response = r.readEntity(String.class).trim();
+            Map<String, TopicStats> topicStats = new Gson().fromJson(response, new TypeToken<Map<String, TopicStats>>() {
+            }.getType());
+
+            assertNotNull(topicStats.get(topicName));
+        }
+    }
+
     @Test
     public void testChangeLogLevel() {
         Assert.assertEquals(proxyService.getProxyLogLevel(), 2);
         int newLogLevel = 1;
-        @Cleanup
-        Client httpClient = ClientBuilder.newClient(new ClientConfig().register(LoggingFeature.class));
-        Response r = httpClient.target(proxyWebServer.getServiceUri()).path("/proxy-stats/logging/" + newLogLevel)
-                .request().post(Entity.entity("", MediaType.APPLICATION_JSON));
-        Assert.assertEquals(r.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
-        Assert.assertEquals(proxyService.getProxyLogLevel(), newLogLevel);
+
+        if (authEnabled) {
+            assertUpdateLogLevel(newLogLevel, null, false);
+            assertUpdateLogLevel(newLogLevel, "notexists", false);
+            assertUpdateLogLevel(newLogLevel, "client", false);
+            assertUpdateLogLevel(newLogLevel, "admin", true);
+
+            assertGetLogLevel(newLogLevel, null, false);
+            assertGetLogLevel(newLogLevel, "notexists", false);
+            assertGetLogLevel(newLogLevel, "client", false);
+            assertGetLogLevel(newLogLevel, "admin", true);
+        } else {
+            assertUpdateLogLevel(newLogLevel, null, true);
+            assertGetLogLevel(newLogLevel, null, true);
+        }
+    }
+
+    private void assertGetLogLevel(int expectedLevel, String role, boolean expectOk) {
+        if (!expectOk) {
+            Assert.assertEquals(httpBuilder("/proxy-stats/logging", role).get()
+                    .getStatus(), Response.Status.FORBIDDEN.getStatusCode());
+        } else {
+            final Response getResponse = httpBuilder("/proxy-stats/logging", role)
+                    .get();
+            Assert.assertEquals(getResponse.getStatus(), Response.Status.OK.getStatusCode());
+            Assert.assertEquals(getResponse.readEntity(int.class), expectedLevel);
+        }
+    }
+
+    private void assertUpdateLogLevel(int newLogLevel, String role, boolean expectOk) {
+        final String postUrl = "/proxy-stats/logging/" + newLogLevel;
+        if (!expectOk) {
+            Assert.assertEquals(httpBuilder(postUrl, role)
+                    .post(Entity.entity("", MediaType.APPLICATION_JSON))
+                    .getStatus(), Response.Status.FORBIDDEN.getStatusCode());
+            Assert.assertNotEquals(proxyService.getProxyLogLevel(), newLogLevel);
+        } else {
+            Response r = httpBuilder(postUrl, role)
+                    .post(Entity.entity("", MediaType.APPLICATION_JSON));
+            Assert.assertEquals(r.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+            Assert.assertEquals(proxyService.getProxyLogLevel(), newLogLevel);
+        }
+    }
+
+
+    private Invocation.Builder httpBuilder(String path, String role) {
+        BasicAuthenticationData auth =
+                new BasicAuthenticationData(role);
+        final Invocation.Builder builder = httpClient
+                .target(proxyWebServer.getServiceUri())
+                .path(path)
+                .request();
+
+        Set<Map.Entry<String, String>> headers = auth.getHttpHeaders();
+        if (headers != null) {
+            headers.forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
+        }
+        return builder;
+    }
+
+
+
+    private PulsarClient createPulsarClient() throws PulsarClientException {
+        return PulsarClient.builder().serviceUrl(proxyService.getServiceUrl())
+                .authentication(BasicAuthentication.class.getName(), "authParam:client").build();
     }
 
 }

@@ -230,10 +230,8 @@ public class ProxyAuthenticationTest extends ProducerConsumerBase {
 		providers.add(BasicAuthenticationProvider.class.getName());
 		proxyConfig.setAuthenticationProviders(providers);
 		proxyConfig.setForwardAuthorizationCredentials(true);
-                AuthenticationService authenticationService = new AuthenticationService(
-                        PulsarConfigurationLoader.convertFrom(proxyConfig));
 		@Cleanup
-		ProxyService proxyService = new ProxyService(proxyConfig, authenticationService);
+		ProxyService proxyService = new ProxyService(proxyConfig);
 
 		proxyService.start();
 		final String proxyServiceUrl = proxyService.getServiceUrl();

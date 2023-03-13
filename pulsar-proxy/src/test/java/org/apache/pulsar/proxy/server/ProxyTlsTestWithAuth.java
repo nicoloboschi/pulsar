@@ -69,8 +69,7 @@ public class ProxyTlsTestWithAuth extends MockedPulsarServiceBaseTest {
             " \"audience\": \"https://dev-kt-aa9ne.us.auth0.com/api/v2/\"," +
             " \"privateKey\":\"file://" + tempFile.getAbsolutePath() + "\"}");
 
-        proxyService = Mockito.spy(new ProxyService(proxyConfig, new AuthenticationService(
-            PulsarConfigurationLoader.convertFrom(proxyConfig))));
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
         doReturn(new ZKMetadataStore(mockZooKeeper)).when(proxyService).createLocalMetadataStore();
         doReturn(new ZKMetadataStore(mockZooKeeperGlobal)).when(proxyService).createConfigurationMetadataStore();
 

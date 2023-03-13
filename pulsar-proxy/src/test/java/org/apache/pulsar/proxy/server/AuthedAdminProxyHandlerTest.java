@@ -26,9 +26,11 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.Optional;
 
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.auth.MockedPulsarServiceBaseTest;
 import org.apache.pulsar.broker.authentication.AuthenticationProviderTls;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
+import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.resources.PulsarResources;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -100,8 +102,10 @@ public class AuthedAdminProxyHandlerTest extends MockedPulsarServiceBaseTest {
 
         resource = new PulsarResources(new ZKMetadataStore(mockZooKeeper),
                 new ZKMetadataStore(mockZooKeeperGlobal));
-        webServer = new WebServer(proxyConfig, new AuthenticationService(
-                                          PulsarConfigurationLoader.convertFrom(proxyConfig)));
+        final ServiceConfiguration serviceConf = PulsarConfigurationLoader.convertFrom(proxyConfig);
+        webServer = new WebServer(proxyConfig,
+                new AuthenticationService(serviceConf),
+                new AuthorizationService(serviceConf, resource));
         discoveryProvider = spy(new BrokerDiscoveryProvider(proxyConfig, resource));
         LoadManagerReport report = new LoadReport(brokerUrl.toString(), brokerUrlTls.toString(), null, null);
         doReturn(report).when(discoveryProvider).nextBroker();

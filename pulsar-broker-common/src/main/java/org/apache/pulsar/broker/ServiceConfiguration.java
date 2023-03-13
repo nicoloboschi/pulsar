@@ -2832,6 +2832,12 @@ public class ServiceConfiguration implements PulsarConfiguration {
     )
     private boolean authenticateMetricsEndpoint = false;
     @FieldContext(
+            category = CATEGORY_METRICS,
+            doc = "A list of role names (a comma-separated list of strings) able to retrieve metrics" +
+                    " and system stats from the web server endpoints."
+    )
+    private Set<String> metricsRoles = new TreeSet<>();
+    @FieldContext(
         category = CATEGORY_METRICS,
         doc = "If true, export topic level metrics otherwise namespace level"
     )

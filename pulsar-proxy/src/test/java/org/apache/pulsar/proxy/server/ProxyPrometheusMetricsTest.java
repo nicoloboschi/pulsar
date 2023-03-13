@@ -72,8 +72,7 @@ public class ProxyPrometheusMetricsTest extends MockedPulsarServiceBaseTest {
         proxyConfig.setConfigurationMetadataStoreUrl(GLOBAL_DUMMY_VALUE);
         proxyConfig.setClusterName(TEST_CLUSTER);
 
-        proxyService = Mockito.spy(new ProxyService(proxyConfig,
-                new AuthenticationService(PulsarConfigurationLoader.convertFrom(proxyConfig))));
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
         doReturn(new ZKMetadataStore(mockZooKeeper)).when(proxyService).createLocalMetadataStore();
         doReturn(new ZKMetadataStore(mockZooKeeperGlobal)).when(proxyService).createConfigurationMetadataStore();
 
@@ -81,10 +80,7 @@ public class ProxyPrometheusMetricsTest extends MockedPulsarServiceBaseTest {
 
         proxyService.addPrometheusRawMetricsProvider(stream -> stream.write("test_metrics{label1=\"xyz\"} 10 \n"));
 
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        proxyWebServer = new WebServer(proxyConfig, authService);
+        proxyWebServer = new WebServer(proxyService);
         ProxyServiceStarter.addWebServerHandlers(proxyWebServer, proxyConfig, proxyService, null);
         proxyWebServer.start();
     }

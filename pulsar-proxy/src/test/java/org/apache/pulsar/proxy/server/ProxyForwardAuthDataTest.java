@@ -35,8 +35,8 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.common.configuration.PulsarConfigurationLoader;
 import org.apache.pulsar.common.policies.data.AuthAction;
-import org.apache.pulsar.proxy.server.ProxyRolesEnforcementTest.BasicAuthentication;
-import org.apache.pulsar.proxy.server.ProxyRolesEnforcementTest.BasicAuthenticationProvider;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthentication;
+import org.apache.pulsar.proxy.server.mocks.BasicAuthenticationProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -114,9 +114,7 @@ public class ProxyForwardAuthDataTest extends ProducerConsumerBase {
         providers.add(BasicAuthenticationProvider.class.getName());
         proxyConfig.setAuthenticationProviders(providers);
 
-        AuthenticationService authenticationService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-        try (ProxyService proxyService = new ProxyService(proxyConfig, authenticationService)) {
+        try (ProxyService proxyService = new ProxyService(proxyConfig)) {
             proxyService.start();
             try (PulsarClient proxyClient = createPulsarClient(proxyService.getServiceUrl(), clientAuthParams)) {
                 proxyClient.newConsumer().topic(topicName).subscriptionName(subscriptionName).subscribe();
@@ -128,11 +126,8 @@ public class ProxyForwardAuthDataTest extends ProducerConsumerBase {
 
         // Step 3: Create proxy with forwardAuthData enabled
         proxyConfig.setForwardAuthorizationCredentials(true);
-        authenticationService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
         @Cleanup
-        ProxyService proxyService = new ProxyService(proxyConfig, authenticationService);
+        ProxyService proxyService = new ProxyService(proxyConfig);
         proxyService.start();
 
         @Cleanup

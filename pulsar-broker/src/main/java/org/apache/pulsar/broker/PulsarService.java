@@ -999,9 +999,12 @@ public class PulsarService implements AutoCloseable, ShutdownService {
                 true, attributeMap, true, Topics.class);
 
         // Add metrics servlet
+        final boolean authenticateMetricsEndpoint = config.isAuthenticateMetricsEndpoint();
         webService.addServlet("/metrics",
                 new ServletHolder(metricsServlet),
-                config.isAuthenticateMetricsEndpoint(), attributeMap);
+                authenticateMetricsEndpoint,
+                authenticateMetricsEndpoint,
+                attributeMap);
 
         // Add websocket service
         addWebSocketServiceHandler(webService, attributeMap, config);
@@ -1882,6 +1885,7 @@ public class PulsarService implements AutoCloseable, ShutdownService {
         workerConfig.setSuperUserRoles(brokerConfig.getSuperUserRoles());
         workerConfig.setProxyRoles(brokerConfig.getProxyRoles());
         workerConfig.setFunctionsWorkerEnablePackageManagement(brokerConfig.isFunctionsWorkerEnablePackageManagement());
+        workerConfig.setMetricsRoles(brokerConfig.getMetricsRoles());
 
         // inherit the nar package locations
         if (isBlank(workerConfig.getFunctionsWorkerServiceNarPackage())) {

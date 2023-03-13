@@ -226,10 +226,7 @@ public class ProxyWithAuthorizationTest extends ProducerConsumerBase {
         properties.setProperty("tokenSecretKey", AuthTokenUtils.encodeKeyBase64(SECRET_KEY));
         proxyConfig.setProperties(properties);
 
-        AuthenticationService authService =
-                new AuthenticationService(PulsarConfigurationLoader.convertFrom(proxyConfig));
-        proxyService = Mockito.spy(new ProxyService(proxyConfig, authService));
-        webServer = new WebServer(proxyConfig, authService);
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
     }
 
     @AfterMethod(alwaysRun = true)
@@ -455,9 +452,7 @@ public class ProxyWithAuthorizationTest extends ProducerConsumerBase {
         proxyConfig.setTlsProtocols(tlsProtocols);
         proxyConfig.setTlsCiphers(tlsCiphers);
 
-        ProxyService proxyService = Mockito.spy(new ProxyService(proxyConfig,
-                                                        new AuthenticationService(
-                                                                PulsarConfigurationLoader.convertFrom(proxyConfig))));
+        ProxyService proxyService = Mockito.spy(new ProxyService(proxyConfig));
         try {
             proxyService.start();
         } catch (Exception ex) {

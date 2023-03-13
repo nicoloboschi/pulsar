@@ -132,9 +132,7 @@ public class ProxyWithAuthorizationNegTest extends ProducerConsumerBase {
 
         proxyConfig.setAuthenticationProviders(providers);
 
-        AuthenticationService authenticationService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-        proxyService = Mockito.spy(new ProxyService(proxyConfig, authenticationService));
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
 
         proxyService.start();
     }

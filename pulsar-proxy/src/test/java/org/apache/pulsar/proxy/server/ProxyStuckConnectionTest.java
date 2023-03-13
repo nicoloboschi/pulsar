@@ -86,8 +86,7 @@ public class ProxyStuckConnectionTest extends MockedPulsarServiceBaseTest {
     }
 
     private void startProxyService() throws Exception {
-        proxyService = Mockito.spy(new ProxyService(proxyConfig, new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig))) {
+        proxyService = Mockito.spy(new ProxyService(proxyConfig) {
             @Override
             protected LookupProxyHandler newLookupProxyHandler(ProxyConnection proxyConnection) {
                 return new TestLookupProxyHandler(this, proxyConnection);
