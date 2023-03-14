@@ -116,8 +116,8 @@ public class WorkerConfig implements Serializable, PulsarConfiguration {
     private boolean authenticateMetricsEndpoint = true;
     @FieldContext(
             category = CATEGORY_WORKER,
-            doc = "A list of role names (a comma-separated list of strings) able to retrieve metrics" +
-                    " and system stats from the web server endpoints."
+            doc = "A list of role names (a comma-separated list of strings) able to retrieve metrics"
+                    + " and system stats from the web server endpoints."
     )
     private Set<String> metricsRoles = new TreeSet<>();
     @FieldContext(
