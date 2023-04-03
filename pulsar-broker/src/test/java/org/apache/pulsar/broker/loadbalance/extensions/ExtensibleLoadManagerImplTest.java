@@ -131,7 +131,7 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
     private ServiceUnitStateChannelImpl channel1;
     private ServiceUnitStateChannelImpl channel2;
 
-    @BeforeClass
+    @BeforeClass(alwaysRun = true)
     @Override
     public void setup() throws Exception {
         conf.setForceDeleteNamespaceAllowed(true);
@@ -196,15 +196,13 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
     }
 
     @Override
-    @AfterClass
+    @AfterClass(alwaysRun = true)
     protected void cleanup() throws Exception {
-        pulsar1 = null;
-        pulsar2.close();
-        super.internalCleanup();
         this.additionalPulsarTestContext.close();
+        super.internalCleanup();
     }
 
-    @BeforeMethod
+    @BeforeMethod(alwaysRun = true)
     protected void initializeState() throws PulsarAdminException {
         admin.namespaces().unload("public/default");
         reset(primaryLoadManager, secondaryLoadManager);
