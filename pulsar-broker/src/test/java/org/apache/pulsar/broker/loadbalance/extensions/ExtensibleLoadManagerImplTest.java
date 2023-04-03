@@ -198,8 +198,8 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
     @Override
     @AfterClass(alwaysRun = true)
     protected void cleanup() throws Exception {
-        this.additionalPulsarTestContext.close();
         super.internalCleanup();
+        this.additionalPulsarTestContext.getPulsarService().close();
     }
 
     @BeforeMethod(alwaysRun = true)
