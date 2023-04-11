@@ -1411,7 +1411,7 @@ public abstract class ComponentImpl implements Component<PulsarWorkerService> {
     private Path getBuiltinArchivePath(String pkgPath, FunctionDetails.ComponentType componentType) {
         String type = pkgPath.replaceFirst("^builtin://", "");
         if (!FunctionDetails.ComponentType.FUNCTION.equals(componentType)) {
-            Connector connector = worker().getConnectorsManager().getConnector(type);
+            Connector connector = worker().getConnectorsManager().loadConnector(type);
             if (connector != null) {
                 return connector.getArchivePath();
             }
