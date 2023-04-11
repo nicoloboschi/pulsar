@@ -519,7 +519,7 @@ public class FunctionActioner {
         if (componentType == FunctionDetails.ComponentType.SOURCE && functionDetails.hasSource()) {
             SourceSpec sourceSpec = functionDetails.getSource();
             if (!StringUtils.isEmpty(sourceSpec.getBuiltin())) {
-                Connector connector = connectorsManager.getConnector(sourceSpec.getBuiltin());
+                Connector connector = connectorsManager.loadConnector(sourceSpec.getBuiltin(), componentType);
                 File archive = connector.getArchivePath().toFile();
                 String sourceClass = connector.getConnectorDefinition().getSourceClass();
                 SourceSpec.Builder builder = SourceSpec.newBuilder(functionDetails.getSource());
@@ -534,7 +534,7 @@ public class FunctionActioner {
         if (componentType == FunctionDetails.ComponentType.SINK && functionDetails.hasSink()) {
             SinkSpec sinkSpec = functionDetails.getSink();
             if (!StringUtils.isEmpty(sinkSpec.getBuiltin())) {
-                Connector connector = connectorsManager.getConnector(sinkSpec.getBuiltin());
+                Connector connector = connectorsManager.loadConnector(sinkSpec.getBuiltin(), componentType);
 
                 File archive = connector.getArchivePath().toFile();
                 String sinkClass = connector.getConnectorDefinition().getSinkClass();

@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -36,6 +37,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.broker.authentication.AuthenticationParameters;
@@ -54,8 +57,10 @@ import org.apache.pulsar.functions.instance.InstanceUtils;
 import org.apache.pulsar.functions.proto.Function;
 import org.apache.pulsar.functions.proto.InstanceCommunication;
 import org.apache.pulsar.functions.utils.ComponentTypeUtils;
+import org.apache.pulsar.functions.utils.FunctionCommon;
 import org.apache.pulsar.functions.utils.SinkConfigUtils;
 import org.apache.pulsar.functions.utils.io.Connector;
+import org.apache.pulsar.functions.worker.ConnectorsManager;
 import org.apache.pulsar.functions.worker.FunctionMetaDataManager;
 import org.apache.pulsar.functions.worker.PulsarWorkerService;
 import org.apache.pulsar.functions.worker.WorkerUtils;
@@ -676,6 +681,7 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
     }
 
     @Override
+    @SneakyThrows
     public List<ConfigFieldDefinition> getSinkConfigDefinition(String name) {
         if (!isWorkerServiceAvailable()) {
             throwUnavailableException();
@@ -701,13 +707,14 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
         org.apache.pulsar.common.functions.Utils.inferMissingArguments(sinkConfig);
 
         ClassLoader classLoader = null;
+        boolean shouldCloseClassLoader = false;
         // check if sink is builtin and extract classloader
         if (!StringUtils.isEmpty(sinkConfig.getArchive())) {
             String archive = sinkConfig.getArchive();
             if (archive.startsWith(org.apache.pulsar.common.functions.Utils.BUILTIN)) {
                 archive = archive.replaceFirst("^builtin://", "");
 
-                Connector connector = worker().getConnectorsManager().getConnector(archive);
+                Connector connector = worker().getConnectorsManager().loadConnector(archive, componentType);
                 // check if builtin connector exists
                 if (connector == null) {
                     throw new IllegalArgumentException("Built-in sink is not available");
@@ -716,7 +723,6 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
             }
         }
 
-        boolean shouldCloseClassLoader = false;
         try {
 
             // if sink is not builtin, attempt to extract classloader from package file if it exists

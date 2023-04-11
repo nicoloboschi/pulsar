@@ -279,6 +279,12 @@ public class FunctionCommon {
     }
 
     public static File extractFileFromPkgURL(String destPkgUrl) throws IOException, URISyntaxException {
+        final File pkgTempFile = createPkgTempFile();
+        pkgTempFile.deleteOnExit();
+        return extractFileFromPkgURL(destPkgUrl, pkgTempFile);
+    }
+
+    public static File extractFileFromPkgURL(String destPkgUrl, File downloadTo) throws IOException, URISyntaxException {
         if (destPkgUrl.startsWith(Utils.FILE)) {
             URL url = new URL(destPkgUrl);
             File file = new File(url.toURI());
@@ -286,11 +292,9 @@ public class FunctionCommon {
                 throw new IOException(destPkgUrl + " does not exists locally");
             }
             return file;
-        } else if (destPkgUrl.startsWith("http")) {
-            File tempFile = createPkgTempFile();
-            tempFile.deleteOnExit();
-            downloadFromHttpUrl(destPkgUrl, tempFile);
-            return tempFile;
+        } else if (destPkgUrl.startsWith(Utils.HTTP)) {
+            downloadFromHttpUrl(destPkgUrl, downloadTo);
+            return downloadTo;
         } else {
             throw new IllegalArgumentException("Unsupported url protocol "
                     + destPkgUrl + ", supported url protocols: [file/http/https]");

@@ -437,3 +437,4 @@ zooKeeperSessionTimeoutMillis: -1
 # ZooKeeper operation timeout in seconds
 # Deprecated: use metadataStoreOperationTimeoutSeconds
 zooKeeperOperationTimeoutSeconds: -1
+connectorsCatalogueUrl: file:///Users/nicolo.boschi/catalogue.yaml

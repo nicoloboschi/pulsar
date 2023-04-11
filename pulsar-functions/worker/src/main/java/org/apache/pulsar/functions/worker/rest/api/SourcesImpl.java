@@ -25,6 +25,7 @@ import static org.apache.pulsar.functions.utils.FunctionCommon.isFunctionCodeBui
 import static org.apache.pulsar.functions.worker.rest.RestUtils.throwUnavailableException;
 import com.google.protobuf.ByteString;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,6 +36,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.broker.authentication.AuthenticationParameters;
@@ -637,6 +640,7 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
     }
 
     @Override
+    @SneakyThrows
     public List<ConfigFieldDefinition> getSourceConfigDefinition(String name) {
         if (!isWorkerServiceAvailable()) {
             throwUnavailableException();
@@ -652,7 +656,7 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
                                                                  final String namespace,
                                                                  final String sourceName,
                                                                  final SourceConfig sourceConfig,
-                                                                 final File sourcePackageFile) {
+                                                                 final File sourcePackageFile) throws IOException {
         // The rest end points take precedence over whatever is there in sourceconfig
         sourceConfig.setTenant(tenant);
         sourceConfig.setNamespace(namespace);
@@ -666,7 +670,7 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
             if (archive.startsWith(org.apache.pulsar.common.functions.Utils.BUILTIN)) {
                 archive = archive.replaceFirst("^builtin://", "");
 
-                Connector connector = worker().getConnectorsManager().getConnector(archive);
+                Connector connector = worker().getConnectorsManager().loadConnector(archive, componentType);
                 // check if builtin connector exists
                 if (connector == null) {
                     throw new IllegalArgumentException("Built-in source is not available");

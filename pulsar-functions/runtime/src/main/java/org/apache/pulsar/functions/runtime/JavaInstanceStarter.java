@@ -311,7 +311,7 @@ public class JavaInstanceStarter implements AutoCloseable {
         }
     }
 
-    private void inferringMissingTypeClassName(Function.FunctionDetails.Builder functionDetailsBuilder,
+    private static void inferringMissingTypeClassName(Function.FunctionDetails.Builder functionDetailsBuilder,
                                                ClassLoader classLoader) throws ClassNotFoundException {
         switch (functionDetailsBuilder.getComponentType()) {
             case FUNCTION:

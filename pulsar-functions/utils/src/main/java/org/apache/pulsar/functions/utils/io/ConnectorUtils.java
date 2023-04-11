@@ -18,12 +18,14 @@
  */
 package org.apache.pulsar.functions.utils.io;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +41,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+
+import lombok.Data;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -146,48 +150,82 @@ public class ConnectorUtils {
     }
 
     public static TreeMap<String, Connector> searchForConnectors(String connectorsDirectory,
-                                                                 String narExtractionDirectory) throws IOException {
+                                                                 String narExtractionDirectory,
+                                                                 String connectorsCatalogueUrl) throws IOException {
         Path path = Paths.get(connectorsDirectory).toAbsolutePath();
-        log.info("Searching for connectors in {}", path);
+        log.info("Searching for local connectors in {} and from remote catalogue {}", path, connectorsCatalogueUrl);
+        final TreeMap<String, Connector> all = new TreeMap<>();
 
-        if (!path.toFile().exists()) {
+        if (path.toFile().exists()) {
+            List<Path> archives = new ArrayList<>();
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.nar")) {
+                for (Path archive : stream) {
+                    archives.add(archive);
+                }
+            }
+
+            if (!archives.isEmpty()) {
+
+                ExecutorService oneTimeExecutor = null;
+                try {
+                    int nThreads = Math.min(Runtime.getRuntime().availableProcessors(), archives.size());
+                    log.info("Loading {} connector definitions with a thread pool of size {}", archives.size(), nThreads);
+                    oneTimeExecutor = Executors.newFixedThreadPool(nThreads,
+                            new ThreadFactoryBuilder().setNameFormat("connector-extraction-executor-%d").build());
+                    List<CompletableFuture<Map.Entry<String, Connector>>> futures = new ArrayList<>();
+                    for (Path archive : archives) {
+                        CompletableFuture<Map.Entry<String, Connector>> future = CompletableFuture.supplyAsync(() ->
+                                getConnectorDefinitionEntry(archive, narExtractionDirectory), oneTimeExecutor);
+                        futures.add(future);
+                    }
+
+                    FutureUtil.waitForAll(futures).join();
+                    final TreeMap<String, Connector> collect = futures.stream()
+                            .map(CompletableFuture::join)
+                            .filter(entry -> entry != null)
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, TreeMap::new));
+                    all.putAll(collect);
+                } finally {
+                    if (oneTimeExecutor != null) {
+                        oneTimeExecutor.shutdown();
+                    }
+                }
+            }
+        } else {
             log.warn("Connectors archive directory not found");
-            return new TreeMap<>();
         }
 
-        List<Path> archives = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.nar")) {
-            for (Path archive : stream) {
-                archives.add(archive);
-            }
-        }
-        if (archives.isEmpty()) {
-            return new TreeMap<>();
-        }
+        if (connectorsCatalogueUrl != null) {
+            log.info("Loading connectors from remote catalogue {}", connectorsCatalogueUrl);
+            final CatalogueIndex catalogueIndex = ObjectMapperFactory
+                    .getYamlMapper()
+                    .getObjectMapper()
+                    .readValue(new URL(connectorsCatalogueUrl), CatalogueIndex.class);
 
-        ExecutorService oneTimeExecutor = null;
-        try {
-            int nThreads = Math.min(Runtime.getRuntime().availableProcessors(), archives.size());
-            log.info("Loading {} connector definitions with a thread pool of size {}", archives.size(), nThreads);
-            oneTimeExecutor = Executors.newFixedThreadPool(nThreads,
-                    new ThreadFactoryBuilder().setNameFormat("connector-extraction-executor-%d").build());
-            List<CompletableFuture<Map.Entry<String, Connector>>> futures = new ArrayList<>();
-            for (Path archive : archives) {
-                CompletableFuture<Map.Entry<String, Connector>> future = CompletableFuture.supplyAsync(() ->
-                        getConnectorDefinitionEntry(archive, narExtractionDirectory), oneTimeExecutor);
-                futures.add(future);
-            }
+            for (CatalogueEntry entry : catalogueIndex.getEntries()) {
+                Connector.ConnectorBuilder connectorBuilder = Connector.builder();
+                final ConnectorDefinition cntDef = entry.getDefinition();
+                log.info("Found connector {} from the catalogue", cntDef.getName());
 
-            FutureUtil.waitForAll(futures).join();
-            return futures.stream()
-                    .map(CompletableFuture::join)
-                    .filter(entry -> entry != null)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, TreeMap::new));
-        } finally {
-            if (oneTimeExecutor != null) {
-                oneTimeExecutor.shutdown();
+                connectorBuilder.connectorDefinition(cntDef);
+                connectorBuilder.downloadPath(entry.getUrl());
+                all.put(cntDef.getName(), connectorBuilder.build());
             }
         }
+        return all;
+
+    }
+
+    @Data
+    public static class CatalogueIndex {
+        private List<CatalogueEntry> entries;
+
+    }
+
+    @Data
+    public static class CatalogueEntry {
+        private String url;
+        private ConnectorDefinition definition;
     }
 
     private static Map.Entry<String, Connector> getConnectorDefinitionEntry(Path archive,

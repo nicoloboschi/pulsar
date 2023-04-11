@@ -20,8 +20,11 @@ package org.apache.pulsar.functions.utils.io;
 
 import java.nio.file.Path;
 import java.util.List;
+
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import org.apache.pulsar.common.io.ConfigFieldDefinition;
 import org.apache.pulsar.common.io.ConnectorDefinition;
 
@@ -33,4 +36,6 @@ public class Connector {
     private List<ConfigFieldDefinition> sinkConfigFieldDefinitions;
     private ClassLoader classLoader;
     private ConnectorDefinition connectorDefinition;
+    private String downloadPath;
+
 }

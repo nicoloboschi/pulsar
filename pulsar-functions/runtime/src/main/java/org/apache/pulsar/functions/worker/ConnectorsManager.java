@@ -18,15 +18,22 @@
  */
 package org.apache.pulsar.functions.worker;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.common.functions.Utils;
 import org.apache.pulsar.common.io.ConfigFieldDefinition;
 import org.apache.pulsar.common.io.ConnectorDefinition;
+import org.apache.pulsar.functions.proto.Function;
+import org.apache.pulsar.functions.utils.FunctionCommon;
 import org.apache.pulsar.functions.utils.io.Connector;
 import org.apache.pulsar.functions.utils.io.ConnectorUtils;
 
@@ -34,15 +41,44 @@ import org.apache.pulsar.functions.utils.io.ConnectorUtils;
 public class ConnectorsManager {
 
     @Getter
-    private volatile TreeMap<String, Connector> connectors;
+    private volatile Map<String, Connector> connectors;
+    private final String narExtractionDirectory;
 
     public ConnectorsManager(WorkerConfig workerConfig) throws IOException {
-        this.connectors = ConnectorUtils
-                .searchForConnectors(workerConfig.getConnectorsDirectory(), workerConfig.getNarExtractionDirectory());
+        this(workerConfig.getConnectorsDirectory(), workerConfig.getNarExtractionDirectory(),
+                workerConfig.getConnectorsCatalogueUrl());
+    }
+
+    public ConnectorsManager(String connectorsDirectory, String narExtractionDirectory,
+                             String connectorsCatalogueUrl) throws IOException {
+        this.narExtractionDirectory = narExtractionDirectory;
+        this.connectors = Collections.synchronizedMap(ConnectorUtils
+                .searchForConnectors(connectorsDirectory, narExtractionDirectory,
+                        connectorsCatalogueUrl)
+        );
     }
 
     public Connector getConnector(String connectorType) {
         return connectors.get(connectorType);
+    }
+
+    public Connector loadConnector(String connectorType, Function.FunctionDetails.ComponentType componentType) throws IOException{
+        return connectors.compute(connectorType, (k, connector) -> {
+            final ClassLoader classLoader = connector.getClassLoader();
+            if (classLoader == null && connector.getDownloadPath() != null) {
+                try {
+                    final File localArchive = loadArchiveFromDownloadPath(connectorType, connector);
+                    connector.setArchivePath(localArchive.toPath());
+                    connector.setClassLoader(
+                            FunctionCommon.getClassLoaderFromPackage(componentType, null, localArchive, narExtractionDirectory)
+                    );
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return connector;
+        });
     }
 
     public ConnectorDefinition getConnectorDefinition(String connectorType) {
@@ -58,12 +94,12 @@ public class ConnectorsManager {
         return connectors.get(sourceType).getArchivePath();
     }
 
-    public List<ConfigFieldDefinition> getSourceConfigDefinition(String sourceType) {
-        return connectors.get(sourceType).getSourceConfigFieldDefinitions();
+    public List<ConfigFieldDefinition> getSourceConfigDefinition(String sourceType) throws IOException {
+        return loadConnector(sourceType, Function.FunctionDetails.ComponentType.SOURCE).getSourceConfigFieldDefinitions();
     }
 
-    public List<ConfigFieldDefinition> getSinkConfigDefinition(String sinkType) {
-        return connectors.get(sinkType).getSinkConfigFieldDefinitions();
+    public List<ConfigFieldDefinition> getSinkConfigDefinition(String sinkType) throws IOException {
+        return loadConnector(sinkType, Function.FunctionDetails.ComponentType.SINK).getSinkConfigFieldDefinitions();
     }
 
     public Path getSinkArchive(String sinkType) {
@@ -72,6 +108,28 @@ public class ConnectorsManager {
 
     public void reloadConnectors(WorkerConfig workerConfig) throws IOException {
         connectors = ConnectorUtils
-                .searchForConnectors(workerConfig.getConnectorsDirectory(), workerConfig.getNarExtractionDirectory());
+                .searchForConnectors(workerConfig.getConnectorsDirectory(), workerConfig.getNarExtractionDirectory(),
+                        workerConfig.getConnectorsCatalogueUrl());
+    }
+
+    private File loadArchiveFromDownloadPath(String archiveName, Connector connector)
+            throws IOException {
+        try {
+            File localArchive;
+            if (connector.getDownloadPath().startsWith(Utils.HTTP)) {
+                final File localCache = new File(narExtractionDirectory,
+                        "downloads");
+                localCache.mkdirs();
+                localArchive = new File(localCache, archiveName);
+                if (!localArchive.exists()) {
+                    localArchive = FunctionCommon.extractFileFromPkgURL(connector.getDownloadPath(), localArchive);
+                }
+            } else {
+                localArchive = FunctionCommon.extractFileFromPkgURL(connector.getDownloadPath());
+            }
+            return localArchive;
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
     }
 }

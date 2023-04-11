@@ -53,6 +53,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.functions.Utils;
+import org.apache.pulsar.common.io.ConnectorDefinition;
 import org.apache.pulsar.common.io.SinkConfig;
 import org.apache.pulsar.common.io.SourceConfig;
 import org.apache.pulsar.common.nar.FileUtils;
@@ -82,6 +83,7 @@ import org.apache.pulsar.functions.utils.functions.FunctionArchive;
 import org.apache.pulsar.functions.utils.functions.FunctionUtils;
 import org.apache.pulsar.functions.utils.io.Connector;
 import org.apache.pulsar.functions.utils.io.ConnectorUtils;
+import org.apache.pulsar.functions.worker.ConnectorsManager;
 
 @Slf4j
 public class LocalRunner implements AutoCloseable {
@@ -198,6 +200,9 @@ public class LocalRunner implements AutoCloseable {
     @Parameter(names = "--metricsPortStart", description = "The starting port range for metrics server. When running "
             + "instances as threads, one metrics server is used to host the stats for all instances.", hidden = true)
     protected Integer metricsPortStart;
+
+    @Parameter(names = "--connectorsCatalogueUrl", description = "Catalogue url for remote connectors.", hidden = true)
+    protected String connectorsCatalogueUrl;
     @Parameter(names = "--exitOnError", description = "The starting port range for metrics server. When running "
             + "instances as threads, one metrics server is used to host the stats for all instances.", hidden = true)
     protected boolean exitOnError;
@@ -752,7 +757,17 @@ public class LocalRunner implements AutoCloseable {
     }
 
     private TreeMap<String, Connector> getConnectors() throws IOException {
-        return ConnectorUtils.searchForConnectors(connectorsDir, narExtractionDirectory);
+        final TreeMap<String, Connector> connectors = ConnectorUtils.searchForConnectors(connectorsDir, narExtractionDirectory, connectorsCatalogueUrl);
+
+        final ConnectorsManager connectorsManager = new ConnectorsManager(connectorsDir, narExtractionDirectory, connectorsCatalogueUrl);
+        connectors.forEach((name, connector) -> {
+            try {
+                connectorsManager.loadConnector(name, connector.getConnectorDefinition().getSinkClass() == null ? ComponentType.SOURCE : ComponentType.SINK);
+            } catch (IOException e) {
+                log.error("Failed to load connector {}", name, e);
+            }
+        });
+        return connectors;
     }
 
     private SecretsProviderConfigurator getSecretsProviderConfigurator() {
