@@ -1638,7 +1638,7 @@ public class FunctionApiV3ResourceTest {
             .setUploadBuiltinSinksSources(false);
         when(mockedWorkerService.getWorkerConfig()).thenReturn(config);
 
-        Connector connector = Connector.builder().archivePath(file.toPath()).build();
+        Connector connector = Connector.ConnectorFromArchive.builder().archivePath(file.toPath()).build();
         ConnectorsManager connectorsManager = mock(ConnectorsManager.class);
         when(connectorsManager.getConnector("cassandra")).thenReturn(connector);
         when(mockedWorkerService.getConnectorsManager()).thenReturn(connectorsManager);
@@ -1702,7 +1702,7 @@ public class FunctionApiV3ResourceTest {
                 .build();
         when(mockedManager.getFunctionMetaData(eq(tenant), eq(namespace), eq(function))).thenReturn(metaData);
 
-        Connector connector = Connector.builder().archivePath(file.toPath()).build();
+        Connector connector = Connector.ConnectorFromArchive.builder().archivePath(file.toPath()).build();
         ConnectorsManager connectorsManager = mock(ConnectorsManager.class);
         when(connectorsManager.getConnector("cassandra")).thenReturn(connector);
         when(mockedWorkerService.getConnectorsManager()).thenReturn(connectorsManager);
