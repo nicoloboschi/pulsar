@@ -101,6 +101,7 @@ public class KubernetesRuntimeFactory implements RuntimeFactory {
     private String functionInstanceClassPath;
     private String downloadDirectory;
     private int gracePeriodSeconds;
+    private ConnectorsManager connectorsManager;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -219,6 +220,7 @@ public class KubernetesRuntimeFactory implements RuntimeFactory {
         this.javaInstanceJarFile = this.pulsarRootDir + "/instances/java-instance.jar";
         this.pythonInstanceFile = this.pulsarRootDir + "/instances/python-instance/python_instance_main.py";
         this.serverCaBytes = workerConfig.getTlsTrustChainBytes();
+        this.connectorsManager = connectorsManager;
         try {
             setupClient();
         } catch (Exception e) {
@@ -345,7 +347,8 @@ public class KubernetesRuntimeFactory implements RuntimeFactory {
             narExtractionDirectory,
             manifestCustomizer,
             functionInstanceClassPath,
-            downloadDirectory);
+            downloadDirectory,
+            connectorsManager);
     }
 
     @Override

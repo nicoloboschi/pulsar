@@ -28,14 +28,77 @@ import lombok.Getter;
 import org.apache.pulsar.common.io.ConfigFieldDefinition;
 import org.apache.pulsar.common.io.ConnectorDefinition;
 
-@Builder
-@Data
-public class Connector {
-    private Path archivePath;
-    private List<ConfigFieldDefinition> sourceConfigFieldDefinitions;
-    private List<ConfigFieldDefinition> sinkConfigFieldDefinitions;
-    private ClassLoader classLoader;
-    private ConnectorDefinition connectorDefinition;
-    private String downloadPath;
+public interface Connector {
 
+    @Builder
+    @Data
+    class ConnectorFromArchive implements Connector {
+        private Path archivePath;
+        private List<ConfigFieldDefinition> sourceConfigFieldDefinitions;
+        private List<ConfigFieldDefinition> sinkConfigFieldDefinitions;
+        private ClassLoader classLoader;
+        private ConnectorDefinition connectorDefinition;
+
+        @Override
+        public boolean isFromCatalogue() {
+            return false;
+        }
+
+        @Override
+        public String getFunctionsPodDockerImage() {
+            return null;
+        }
+    }
+
+    @Builder
+    @Data
+    class ConnectorFromCatalogue implements Connector {
+        private ConnectorDefinition connectorDefinition;
+        private String dockerImageName;
+
+        @Override
+        public Path getArchivePath() {
+            throw new UnsupportedOperationException("Cannot get archive path from catalogue's connector");
+        }
+
+        @Override
+        public List<ConfigFieldDefinition> getSourceConfigFieldDefinitions() {
+            throw new UnsupportedOperationException("Cannot get source config fields from catalogue's connector");
+        }
+
+        @Override
+        public List<ConfigFieldDefinition> getSinkConfigFieldDefinitions() {
+            throw new UnsupportedOperationException("Cannot get sink config fields from catalogue's connector");
+        }
+
+        @Override
+        public ClassLoader getClassLoader() {
+            throw new UnsupportedOperationException("Cannot get class loader from catalogue's connector");
+        }
+
+        @Override
+        public boolean isFromCatalogue() {
+            return true;
+        }
+
+        @Override
+        public String getFunctionsPodDockerImage() {
+            return dockerImageName;
+        }
+    }
+
+
+    Path getArchivePath();
+
+    List<ConfigFieldDefinition> getSourceConfigFieldDefinitions();
+
+    List<ConfigFieldDefinition> getSinkConfigFieldDefinitions();
+
+    ClassLoader getClassLoader();
+
+    ConnectorDefinition getConnectorDefinition();
+
+    boolean isFromCatalogue();
+
+    String getFunctionsPodDockerImage();
 }

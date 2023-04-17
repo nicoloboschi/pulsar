@@ -128,12 +128,12 @@ public class ThreadRuntime implements Runtime {
             }
             if (componentType == Function.FunctionDetails.ComponentType.SOURCE && connectorsManager.isPresent()) {
                 return connectorsManager.get()
-                        .loadConnector(instanceConfig.getFunctionDetails().getSource().getBuiltin(), componentType)
+                        .getConnector(instanceConfig.getFunctionDetails().getSource().getBuiltin())
                         .getClassLoader();
             }
             if (componentType == Function.FunctionDetails.ComponentType.SINK && connectorsManager.isPresent()) {
                 return connectorsManager.get()
-                        .loadConnector(instanceConfig.getFunctionDetails().getSink().getBuiltin(), componentType)
+                        .getConnector(instanceConfig.getFunctionDetails().getSink().getBuiltin())
                         .getClassLoader();
             }
         }

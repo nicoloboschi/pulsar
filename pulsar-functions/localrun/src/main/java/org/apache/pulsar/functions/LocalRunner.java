@@ -725,11 +725,7 @@ public class LocalRunner implements AutoCloseable {
     }
 
     private ClassLoader isBuiltInSource(String sourceType) throws IOException {
-        // Validate the connector type from the locally available connectors
-        TreeMap<String, Connector> connectors = getConnectors();
-
-        String source = sourceType.replaceFirst("^builtin://", "");
-        Connector connector = connectors.get(source);
+        Connector connector = getConnector(sourceType, ComponentType.SOURCE);
         if (connector != null && connector.getConnectorDefinition().getSourceClass() != null) {
             // Source type is a valid built-in connector type.
             return connector.getClassLoader();
@@ -739,11 +735,7 @@ public class LocalRunner implements AutoCloseable {
     }
 
     private ClassLoader isBuiltInSink(String sinkType) throws IOException {
-        // Validate the connector type from the locally available connectors
-        TreeMap<String, Connector> connectors = getConnectors();
-
-        String sink = sinkType.replaceFirst("^builtin://", "");
-        Connector connector = connectors.get(sink);
+        Connector connector = getConnector(sinkType, ComponentType.SINK);
         if (connector != null && connector.getConnectorDefinition().getSinkClass() != null) {
             // Sink type is a valid built-in connector type
             return connector.getClassLoader();
@@ -756,18 +748,12 @@ public class LocalRunner implements AutoCloseable {
         return FunctionUtils.searchForFunctions(functionsDir);
     }
 
-    private TreeMap<String, Connector> getConnectors() throws IOException {
-        final TreeMap<String, Connector> connectors = ConnectorUtils.searchForConnectors(connectorsDir, narExtractionDirectory, connectorsCatalogueUrl);
-
+    private Connector getConnector(String name, Function.FunctionDetails.ComponentType componentType) throws IOException {
+        final TreeMap<String, Connector> connectors = ConnectorUtils.searchForConnectors(connectorsDir,
+                narExtractionDirectory, connectorsCatalogueUrl);
+        name = name.replaceFirst("^builtin://", "");
         final ConnectorsManager connectorsManager = new ConnectorsManager(connectorsDir, narExtractionDirectory, connectorsCatalogueUrl);
-        connectors.forEach((name, connector) -> {
-            try {
-                connectorsManager.loadConnector(name, connector.getConnectorDefinition().getSinkClass() == null ? ComponentType.SOURCE : ComponentType.SINK);
-            } catch (IOException e) {
-                log.error("Failed to load connector {}", name, e);
-            }
-        });
-        return connectors;
+        return connectorsManager.getConnector(name);
     }
 
     private SecretsProviderConfigurator getSecretsProviderConfigurator() {

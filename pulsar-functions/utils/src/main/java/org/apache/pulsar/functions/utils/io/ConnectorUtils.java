@@ -203,12 +203,13 @@ public class ConnectorUtils {
                     .readValue(new URL(connectorsCatalogueUrl), CatalogueIndex.class);
 
             for (CatalogueEntry entry : catalogueIndex.getEntries()) {
-                Connector.ConnectorBuilder connectorBuilder = Connector.builder();
+                Connector.ConnectorFromCatalogue.ConnectorFromCatalogueBuilder connectorBuilder =
+                        Connector.ConnectorFromCatalogue.builder();
                 final ConnectorDefinition cntDef = entry.getDefinition();
                 log.info("Found connector {} from the catalogue", cntDef.getName());
 
                 connectorBuilder.connectorDefinition(cntDef);
-                connectorBuilder.downloadPath(entry.getUrl());
+                connectorBuilder.dockerImageName(entry.getDockerImage());
                 all.put(cntDef.getName(), connectorBuilder.build());
             }
         }
@@ -224,7 +225,7 @@ public class ConnectorUtils {
 
     @Data
     public static class CatalogueEntry {
-        private String url;
+        private String dockerImage;
         private ConnectorDefinition definition;
     }
 
@@ -237,7 +238,8 @@ public class ConnectorUtils {
                     .extractionDirectory(narExtractionDirectory)
                     .build();
 
-            Connector.ConnectorBuilder connectorBuilder = Connector.builder();
+            Connector.ConnectorFromArchive.ConnectorFromArchiveBuilder connectorBuilder = Connector
+                    .ConnectorFromArchive.builder();
             ConnectorDefinition cntDef = ConnectorUtils.getConnectorDefinition(ncl);
             log.info("Found connector {} from {}", cntDef, archive);
 

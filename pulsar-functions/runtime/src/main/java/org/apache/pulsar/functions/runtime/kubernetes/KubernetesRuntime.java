@@ -87,6 +87,8 @@ import org.apache.pulsar.functions.runtime.RuntimeUtils;
 import org.apache.pulsar.functions.secretsproviderconfigurator.SecretsProviderConfigurator;
 import org.apache.pulsar.functions.utils.Actions;
 import org.apache.pulsar.functions.utils.FunctionCommon;
+import org.apache.pulsar.functions.utils.io.Connector;
+import org.apache.pulsar.functions.worker.ConnectorsManager;
 
 /**
  * Kubernetes based runtime for running functions.
@@ -141,6 +143,7 @@ public class KubernetesRuntime implements Runtime {
     private final String originalTransformFunctionFileName;
     private final String pulsarAdminUrl;
     private final SecretsProviderConfigurator secretsProviderConfigurator;
+    private final ConnectorsManager connectorsManager;
     private int percentMemoryPadding;
     private double cpuOverCommitRatio;
     private double memoryOverCommitRatio;
@@ -190,7 +193,8 @@ public class KubernetesRuntime implements Runtime {
                       String narExtractionDirectory,
                       Optional<KubernetesManifestCustomizer> manifestCustomizer,
                       String functionInstanceClassPath,
-                      String downloadDirectory) throws Exception {
+                      String downloadDirectory,
+                      ConnectorsManager connectorsManager) throws Exception {
         this.appsClient = appsClient;
         this.coreClient = coreClient;
         this.instanceConfig = instanceConfig;
@@ -244,6 +248,7 @@ public class KubernetesRuntime implements Runtime {
         this.grpcPort = grpcPort;
         this.metricsPort = instanceConfig.hasValidMetricsPort() ? instanceConfig.getMetricsPort() : null;
         this.narExtractionDirectory = narExtractionDirectory;
+        this.connectorsManager = connectorsManager;
 
         this.processArgs = new LinkedList<>();
         this.processArgs.addAll(RuntimeUtils.getArgsBeforeCmd(instanceConfig, extraDependenciesDir));
@@ -849,8 +854,15 @@ public class KubernetesRuntime implements Runtime {
     }
 
     protected List<String> getExecutorCommand() {
-        List<String> cmds =
-                new ArrayList<>(getDownloadCommand(instanceConfig.getFunctionDetails(), originalCodeFileName, false));
+        List<String> cmds = new ArrayList<>();
+        final Connector connector = connectorsManager.getConnector(instanceConfig.getFunctionDetails().getBuiltin());
+        if (connector != null && connector.isFromCatalogue()) {
+            cmds.add("cp");
+            cmds.add("/pulsar/connector/*.nar");
+            cmds.add(originalCodeFileName);
+        } else {
+            cmds.addAll(getDownloadCommand(instanceConfig.getFunctionDetails(), originalCodeFileName, false));
+        }
         if (isNotEmpty(originalTransformFunctionFileName)) {
             cmds.add("&&");
             cmds.addAll(getDownloadCommand(instanceConfig.getFunctionDetails(),
@@ -1051,7 +1063,15 @@ public class KubernetesRuntime implements Runtime {
         Function.FunctionDetails.Runtime runtime = instanceConfig.getFunctionDetails().getRuntime();
 
         String imageName = null;
-        if (functionDockerImages != null) {
+
+        if (instanceConfig.getFunctionDetails().getBuiltin() != null) {
+            final Connector connector = connectorsManager.getConnector(instanceConfig.getFunctionDetails().getBuiltin());
+            if (connector != null) {
+                imageName = connector.getFunctionsPodDockerImage();
+            }
+        }
+
+        if (imageName == null && functionDockerImages != null) {
             switch (runtime) {
                 case JAVA:
                     if (functionDockerImages.get("JAVA") != null) {
@@ -1072,10 +1092,11 @@ public class KubernetesRuntime implements Runtime {
                     imageName = pulsarDockerImageName;
                     break;
             }
-            container.setImage(imageName);
-        } else {
-            container.setImage(pulsarDockerImageName);
         }
+        if (imageName == null) {
+            imageName = pulsarDockerImageName;
+        }
+        container.setImage(imageName);
 
         container.setImagePullPolicy(imagePullPolicy);
 

@@ -327,10 +327,8 @@ public abstract class ComponentImpl implements Component<PulsarWorkerService> {
                 File component;
                 switch (componentType) {
                     case SOURCE:
-                        component = worker().getConnectorsManager().getSourceArchive(builtin).toFile();
-                        break;
                     case SINK:
-                        component = worker().getConnectorsManager().getSinkArchive(builtin).toFile();
+                        component = worker().getConnectorsManager().getConnector(builtin).getArchivePath().toFile();
                         break;
                     default:
                         component = worker().getFunctionsManager().getFunctionArchive(builtin).toFile();
@@ -1411,7 +1409,7 @@ public abstract class ComponentImpl implements Component<PulsarWorkerService> {
     private Path getBuiltinArchivePath(String pkgPath, FunctionDetails.ComponentType componentType) {
         String type = pkgPath.replaceFirst("^builtin://", "");
         if (!FunctionDetails.ComponentType.FUNCTION.equals(componentType)) {
-            Connector connector = worker().getConnectorsManager().loadConnector(type);
+            Connector connector = worker().getConnectorsManager().getConnector(type);
             if (connector != null) {
                 return connector.getArchivePath();
             }

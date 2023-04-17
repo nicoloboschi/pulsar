@@ -686,11 +686,15 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
         if (!isWorkerServiceAvailable()) {
             throwUnavailableException();
         }
-        List<ConfigFieldDefinition> retval = this.worker().getConnectorsManager().getSinkConfigDefinition(name);
-        if (retval == null) {
+        final Connector connector = this.worker().getConnectorsManager().getConnector(name);
+        if (connector == null) {
             throw new RestException(Response.Status.NOT_FOUND, "builtin sink does not exist");
         }
-        return retval;
+        final List<ConfigFieldDefinition> sinkConfigFieldDefinitions = connector.getSinkConfigFieldDefinitions();
+        if (sinkConfigFieldDefinitions == null) {
+            throw new RestException(Response.Status.NOT_FOUND, "builtin sink does not have config definitions");
+        }
+        return sinkConfigFieldDefinitions;
     }
 
     private Function.FunctionDetails validateUpdateRequestParams(final String tenant,
@@ -707,6 +711,7 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
         org.apache.pulsar.common.functions.Utils.inferMissingArguments(sinkConfig);
 
         ClassLoader classLoader = null;
+        boolean isSinkFromCatalogue = false;
         boolean shouldCloseClassLoader = false;
         // check if sink is builtin and extract classloader
         if (!StringUtils.isEmpty(sinkConfig.getArchive())) {
@@ -714,25 +719,29 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
             if (archive.startsWith(org.apache.pulsar.common.functions.Utils.BUILTIN)) {
                 archive = archive.replaceFirst("^builtin://", "");
 
-                Connector connector = worker().getConnectorsManager().loadConnector(archive, componentType);
+                Connector connector = worker().getConnectorsManager().getConnector(archive);
                 // check if builtin connector exists
                 if (connector == null) {
                     throw new IllegalArgumentException("Built-in sink is not available");
                 }
-                classLoader = connector.getClassLoader();
+                if (connector.isFromCatalogue()) {
+                    isSinkFromCatalogue = true;
+                } else {
+                    classLoader = connector.getClassLoader();
+                }
             }
         }
 
         try {
 
             // if sink is not builtin, attempt to extract classloader from package file if it exists
-            if (classLoader == null && sinkPackageFile != null) {
+            if (!isSinkFromCatalogue && classLoader == null && sinkPackageFile != null) {
                 classLoader = getClassLoaderFromPackage(sinkConfig.getClassName(),
                         sinkPackageFile, worker().getWorkerConfig().getNarExtractionDirectory());
                 shouldCloseClassLoader = true;
             }
 
-            if (classLoader == null) {
+            if (!isSinkFromCatalogue && classLoader == null) {
                 throw new IllegalArgumentException("Sink package is not provided");
             }
 
@@ -750,8 +759,14 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
                 }
             }
 
-            SinkConfigUtils.ExtractedSinkDetails sinkDetails = SinkConfigUtils.validateAndExtractDetails(
-                sinkConfig, classLoader, functionClassLoader, worker().getWorkerConfig().getValidateConnectorConfig());
+            final SinkConfigUtils.ExtractedSinkDetails sinkDetails;
+            if (isSinkFromCatalogue) {
+                sinkDetails = SinkConfigUtils.validateAndExtractDetailsForConnectorFromCatalogue(
+                        sinkConfig, functionClassLoader);
+            } else {
+                sinkDetails = SinkConfigUtils.validateAndExtractDetails(
+                        sinkConfig, classLoader, functionClassLoader, worker().getWorkerConfig().getValidateConnectorConfig());
+            }
 
             return SinkConfigUtils.convert(sinkConfig, sinkDetails);
         } finally {

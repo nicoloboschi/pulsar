@@ -56,6 +56,7 @@ import org.apache.pulsar.functions.instance.InstanceUtils;
 import org.apache.pulsar.functions.proto.Function;
 import org.apache.pulsar.functions.proto.InstanceCommunication;
 import org.apache.pulsar.functions.utils.ComponentTypeUtils;
+import org.apache.pulsar.functions.utils.SinkConfigUtils;
 import org.apache.pulsar.functions.utils.SourceConfigUtils;
 import org.apache.pulsar.functions.utils.io.Connector;
 import org.apache.pulsar.functions.worker.FunctionMetaDataManager;
@@ -645,11 +646,15 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
         if (!isWorkerServiceAvailable()) {
             throwUnavailableException();
         }
-        List<ConfigFieldDefinition> retval = this.worker().getConnectorsManager().getSourceConfigDefinition(name);
-        if (retval == null) {
+        final Connector connector = this.worker().getConnectorsManager().getConnector(name);
+        if (connector == null) {
             throw new RestException(Response.Status.NOT_FOUND, "builtin source does not exist");
         }
-        return retval;
+        final List<ConfigFieldDefinition> sourceConfigFieldDefinitions = connector.getSourceConfigFieldDefinitions();
+        if (sourceConfigFieldDefinitions == null) {
+            throw new RestException(Response.Status.NOT_FOUND, "builtin source does not have config definitions");
+        }
+        return sourceConfigFieldDefinitions;
     }
 
     private Function.FunctionDetails validateUpdateRequestParams(final String tenant,
@@ -664,31 +669,36 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
         org.apache.pulsar.common.functions.Utils.inferMissingArguments(sourceConfig);
 
         ClassLoader classLoader = null;
+        boolean isSourceFromCatalogue = false;
         // check if source is builtin and extract classloader
         if (!StringUtils.isEmpty(sourceConfig.getArchive())) {
             String archive = sourceConfig.getArchive();
             if (archive.startsWith(org.apache.pulsar.common.functions.Utils.BUILTIN)) {
                 archive = archive.replaceFirst("^builtin://", "");
 
-                Connector connector = worker().getConnectorsManager().loadConnector(archive, componentType);
+                Connector connector = worker().getConnectorsManager().getConnector(archive);
                 // check if builtin connector exists
                 if (connector == null) {
                     throw new IllegalArgumentException("Built-in source is not available");
                 }
-                classLoader = connector.getClassLoader();
+                if (connector.isFromCatalogue()) {
+                    isSourceFromCatalogue = true;
+                } else {
+                    classLoader = connector.getClassLoader();
+                }
             }
         }
 
         boolean shouldCloseClassLoader = false;
         try {
             // if source is not builtin, attempt to extract classloader from package file if it exists
-            if (classLoader == null && sourcePackageFile != null) {
+            if (!isSourceFromCatalogue && classLoader == null && sourcePackageFile != null) {
                 classLoader = getClassLoaderFromPackage(sourceConfig.getClassName(),
                         sourcePackageFile, worker().getWorkerConfig().getNarExtractionDirectory());
                 shouldCloseClassLoader = true;
             }
 
-            if (classLoader == null) {
+            if (!isSourceFromCatalogue && classLoader == null) {
                 throw new IllegalArgumentException("Source package is not provided");
             }
 

@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -401,7 +403,23 @@ public class SinkConfigUtils {
         return sinkConfig;
     }
 
+    public static ExtractedSinkDetails validateAndExtractDetailsForConnectorFromCatalogue(SinkConfig sinkConfig,
+                                                                 ClassLoader functionClassLoader) {
+        return internalValidateAndExtractDetails(sinkConfig, null, functionClassLoader, false);
+
+    }
+
     public static ExtractedSinkDetails validateAndExtractDetails(SinkConfig sinkConfig,
+                                                                 ClassLoader sinkClassLoader,
+                                                                 ClassLoader functionClassLoader,
+                                                                 boolean validateConnectorConfig) {
+        Objects.requireNonNull(sinkClassLoader);
+        return internalValidateAndExtractDetails(sinkConfig, sinkClassLoader,
+                functionClassLoader, validateConnectorConfig);
+
+    }
+
+    private static ExtractedSinkDetails internalValidateAndExtractDetails(SinkConfig sinkConfig,
                                                                  ClassLoader sinkClassLoader,
                                                                  ClassLoader functionClassLoader,
                                                                  boolean validateConnectorConfig) {
@@ -438,30 +456,10 @@ public class SinkConfigUtils {
         if (sinkConfig.getTimeoutMs() != null && sinkConfig.getTimeoutMs() < 0) {
             throw new IllegalArgumentException("Sink timeout must be a positive number");
         }
-
         String sinkClassName = sinkConfig.getClassName();
-        // if class name in sink config is not set, this should be a built-in sink
-        // thus we should try to find it class name in the NAR service definition
-        if (sinkClassName == null) {
-            try {
-                sinkClassName = ConnectorUtils.getIOSinkClass((NarClassLoader) sinkClassLoader);
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to extract sink class from archive", e);
-            }
-        }
-
-        // check if sink implements the correct interfaces
-        Class sinkClass;
-        try {
-            sinkClass = sinkClassLoader.loadClass(sinkClassName);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException(
-                    String.format("Sink class %s not found in class loader", sinkClassName), e);
-        }
-
         String functionClassName = sinkConfig.getTransformFunctionClassName();
-        Class<?> typeArg;
-        ClassLoader inputClassLoader;
+        final Class<?> typeArg;
+        final ClassLoader inputClassLoader;
         if (functionClassLoader != null) {
             // if function class name in sink config is not set, this should be a built-in function
             // thus we should try to find it class name in the NAR service definition
@@ -486,18 +484,40 @@ public class SinkConfigUtils {
             typeArg = getFunctionTypes(functionClass, false)[0];
             inputClassLoader = functionClassLoader;
         } else {
-            // extract type from sink class
-            typeArg = getSinkType(sinkClass);
-            inputClassLoader = sinkClassLoader;
+            if (sinkClassLoader != null) {
+                // if class name in sink config is not set, this should be a built-in sink
+                // thus we should try to find it class name in the NAR service definition
+                if (sinkClassName == null) {
+                    try {
+                        sinkClassName = ConnectorUtils.getIOSinkClass((NarClassLoader) sinkClassLoader);
+                    } catch (IOException e) {
+                        throw new IllegalArgumentException("Failed to extract sink class from archive", e);
+                    }
+                }
+
+                // check if sink implements the correct interfaces
+                Class sinkClass;
+                try {
+                    sinkClass = sinkClassLoader.loadClass(sinkClassName);
+                } catch (ClassNotFoundException e) {
+                    throw new IllegalArgumentException(
+                            String.format("Sink class %s not found in class loader", sinkClassName), e);
+                }
+                typeArg = getSinkType(sinkClass);
+                inputClassLoader = sinkClassLoader;
+            } else {
+                typeArg = null;
+                inputClassLoader = null;
+            }
         }
 
-        if (sinkConfig.getTopicToSerdeClassName() != null) {
+        if (inputClassLoader != null && sinkConfig.getTopicToSerdeClassName() != null) {
            for (String serdeClassName : sinkConfig.getTopicToSerdeClassName().values()) {
                ValidatorUtils.validateSerde(serdeClassName, typeArg, inputClassLoader, true);
            }
         }
 
-        if (sinkConfig.getTopicToSchemaType() != null) {
+        if (inputClassLoader != null && sinkConfig.getTopicToSchemaType() != null) {
             for (String schemaType : sinkConfig.getTopicToSchemaType().values()) {
                 ValidatorUtils.validateSchema(schemaType, typeArg, inputClassLoader, true);
             }
@@ -505,7 +525,7 @@ public class SinkConfigUtils {
 
         // topicsPattern does not need checks
 
-        if (sinkConfig.getInputSpecs() != null) {
+        if (inputClassLoader != null && sinkConfig.getInputSpecs() != null) {
             for (ConsumerConfig consumerSpec : sinkConfig.getInputSpecs().values()) {
                 // Only one is set
                 if (!isEmpty(consumerSpec.getSerdeClassName()) && !isEmpty(consumerSpec.getSchemaType())) {
@@ -528,7 +548,7 @@ public class SinkConfigUtils {
             validateSinkConfig(sinkConfig, (NarClassLoader) sinkClassLoader);
         }
 
-        return new ExtractedSinkDetails(sinkClassName, typeArg.getName(), functionClassName);
+        return new ExtractedSinkDetails(sinkClassName, typeArg == null ? null : typeArg.getName(), functionClassName);
     }
 
     private static Collection<String> collectAllInputTopics(SinkConfig sinkConfig) {
