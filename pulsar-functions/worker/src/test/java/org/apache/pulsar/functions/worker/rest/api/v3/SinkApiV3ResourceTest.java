@@ -1762,11 +1762,11 @@ public class SinkApiV3ResourceTest {
         });
 
         ConnectorsManager mockedConnManager = mock(ConnectorsManager.class);
-        Connector connector = Connector.builder()
+        Connector connector = Connector.ConnectorFromArchive.builder()
             .classLoader(mockedClassLoader)
+            .archivePath(getPulsarIOCassandraNar().toPath())
             .build();
         when(mockedConnManager.getConnector("cassandra")).thenReturn(connector);
-        when(mockedConnManager.getSinkArchive(any())).thenReturn(getPulsarIOCassandraNar().toPath());
         when(mockedWorkerService.getConnectorsManager()).thenReturn(mockedConnManager);
 
         when(mockedRuntimeFactory.externallyManaged()).thenReturn(true);
@@ -1816,11 +1816,11 @@ public class SinkApiV3ResourceTest {
         });
 
         ConnectorsManager mockedConnManager = mock(ConnectorsManager.class);
-        Connector connector = Connector.builder()
+        Connector connector = Connector.ConnectorFromArchive.builder()
                 .classLoader(mockedClassLoader)
+                .archivePath(getPulsarIOCassandraNar().toPath())
                 .build();
         when(mockedConnManager.getConnector("cassandra")).thenReturn(connector);
-        when(mockedConnManager.getSinkArchive(any())).thenReturn(getPulsarIOCassandraNar().toPath());
 
         when(mockedWorkerService.getConnectorsManager()).thenReturn(mockedConnManager);
 

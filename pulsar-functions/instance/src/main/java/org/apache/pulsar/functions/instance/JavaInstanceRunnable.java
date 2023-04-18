@@ -19,8 +19,13 @@
 package org.apache.pulsar.functions.instance;
 
 import static org.apache.pulsar.functions.utils.FunctionCommon.convertFromFunctionDetailsSubscriptionPosition;
+import static org.apache.pulsar.functions.utils.FunctionCommon.getSinkType;
+import static org.apache.pulsar.functions.utils.FunctionCommon.getSourceType;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.scurrilous.circe.checksum.Crc32cIntChecksum;
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
@@ -59,6 +64,7 @@ import org.apache.pulsar.client.impl.schema.ProtobufSchema;
 import org.apache.pulsar.common.functions.ConsumerConfig;
 import org.apache.pulsar.common.functions.FunctionConfig;
 import org.apache.pulsar.common.functions.ProducerConfig;
+import org.apache.pulsar.common.functions.WindowConfig;
 import org.apache.pulsar.common.protocol.schema.SchemaVersion;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
@@ -797,7 +803,7 @@ public class JavaInstanceRunnable implements AutoCloseable, Runnable {
 
             pulsarSourceConfig.setSubscriptionType(contextImpl.getSubscriptionType());
 
-            pulsarSourceConfig.setTypeClassName(sourceSpec.getTypeClassName());
+            // pulsarSourceConfig.setTypeClassName(sourceSpec.getTypeClassName());
 
             if (sourceSpec.getTimeoutMs() > 0) {
                 pulsarSourceConfig.setTimeoutMs(sourceSpec.getTimeoutMs());

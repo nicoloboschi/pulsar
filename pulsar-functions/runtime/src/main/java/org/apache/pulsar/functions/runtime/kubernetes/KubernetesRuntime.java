@@ -71,9 +71,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.functions.auth.KubernetesFunctionAuthProvider;
 import org.apache.pulsar.functions.instance.AuthenticationConfig;
 import org.apache.pulsar.functions.instance.InstanceConfig;
@@ -87,6 +89,8 @@ import org.apache.pulsar.functions.runtime.RuntimeUtils;
 import org.apache.pulsar.functions.secretsproviderconfigurator.SecretsProviderConfigurator;
 import org.apache.pulsar.functions.utils.Actions;
 import org.apache.pulsar.functions.utils.FunctionCommon;
+import org.apache.pulsar.functions.utils.io.Connector;
+import org.apache.pulsar.functions.worker.ConnectorsManager;
 
 /**
  * Kubernetes based runtime for running functions.
@@ -141,6 +145,7 @@ public class KubernetesRuntime implements Runtime {
     private final String originalTransformFunctionFileName;
     private final String pulsarAdminUrl;
     private final SecretsProviderConfigurator secretsProviderConfigurator;
+    private final ConnectorsManager connectorsManager;
     private int percentMemoryPadding;
     private double cpuOverCommitRatio;
     private double memoryOverCommitRatio;
@@ -190,7 +195,8 @@ public class KubernetesRuntime implements Runtime {
                       String narExtractionDirectory,
                       Optional<KubernetesManifestCustomizer> manifestCustomizer,
                       String functionInstanceClassPath,
-                      String downloadDirectory) throws Exception {
+                      String downloadDirectory,
+                      ConnectorsManager connectorsManager) throws Exception {
         this.appsClient = appsClient;
         this.coreClient = coreClient;
         this.instanceConfig = instanceConfig;
@@ -244,6 +250,7 @@ public class KubernetesRuntime implements Runtime {
         this.grpcPort = grpcPort;
         this.metricsPort = instanceConfig.hasValidMetricsPort() ? instanceConfig.getMetricsPort() : null;
         this.narExtractionDirectory = narExtractionDirectory;
+        this.connectorsManager = connectorsManager;
 
         this.processArgs = new LinkedList<>();
         this.processArgs.addAll(RuntimeUtils.getArgsBeforeCmd(instanceConfig, extraDependenciesDir));
@@ -849,8 +856,42 @@ public class KubernetesRuntime implements Runtime {
     }
 
     protected List<String> getExecutorCommand() {
-        List<String> cmds =
-                new ArrayList<>(getDownloadCommand(instanceConfig.getFunctionDetails(), originalCodeFileName, false));
+        List<String> cmds = new ArrayList<>();
+
+        Function.FunctionDetails.ComponentType componentType =
+                InstanceUtils.calculateSubjectType(instanceConfig.getFunctionDetails());
+
+        final String builtin;
+        if (componentType == Function.FunctionDetails.ComponentType.SOURCE) {
+            builtin = instanceConfig.getFunctionDetails().getSource().getBuiltin();
+        } else if (componentType == Function.FunctionDetails.ComponentType.SINK) {
+            builtin = instanceConfig.getFunctionDetails().getSink().getBuiltin();
+        } else {
+            builtin = null;
+        }
+        boolean needDownload = true;
+        log.info("looking for connector builtin={}, component={}", builtin, componentType);
+
+        if (builtin != null) {
+            final Connector connector = connectorsManager.getConnector(builtin);
+            log.info("got connector {} using {}, all connectors {}", connector, builtin,
+                    connectorsManager.getConnectors().keySet());
+            if (connector != null && connector.isFromCatalogue()) {
+                needDownload = false;
+            }
+        }
+
+        if (!needDownload) {
+            cmds.add("mkdir");
+            cmds.add("-p");
+            cmds.add(originalCodeFileName);
+            cmds.add("&&");
+            cmds.add("cp");
+            cmds.add("/pulsar/connector/*.nar");
+            cmds.add(originalCodeFileName);
+        } else {
+            cmds.addAll(getDownloadCommand(instanceConfig.getFunctionDetails(), originalCodeFileName, false));
+        }
         if (isNotEmpty(originalTransformFunctionFileName)) {
             cmds.add("&&");
             cmds.addAll(getDownloadCommand(instanceConfig.getFunctionDetails(),
@@ -1051,7 +1092,25 @@ public class KubernetesRuntime implements Runtime {
         Function.FunctionDetails.Runtime runtime = instanceConfig.getFunctionDetails().getRuntime();
 
         String imageName = null;
-        if (functionDockerImages != null) {
+
+        Function.FunctionDetails.ComponentType componentType =
+                InstanceUtils.calculateSubjectType(instanceConfig.getFunctionDetails());
+        final String builtin;
+        if (componentType == Function.FunctionDetails.ComponentType.SOURCE) {
+            builtin = instanceConfig.getFunctionDetails().getSource().getBuiltin();
+        } else if (componentType == Function.FunctionDetails.ComponentType.SINK) {
+            builtin = instanceConfig.getFunctionDetails().getSink().getBuiltin();
+        } else {
+            builtin = null;
+        }
+        if (builtin != null) {
+            final Connector connector = connectorsManager.getConnector(builtin);
+            if (connector != null) {
+                imageName = connector.getFunctionsPodDockerImage();
+            }
+        }
+
+        if (imageName == null && functionDockerImages != null) {
             switch (runtime) {
                 case JAVA:
                     if (functionDockerImages.get("JAVA") != null) {
@@ -1072,10 +1131,11 @@ public class KubernetesRuntime implements Runtime {
                     imageName = pulsarDockerImageName;
                     break;
             }
-            container.setImage(imageName);
-        } else {
-            container.setImage(pulsarDockerImageName);
         }
+        if (imageName == null) {
+            imageName = pulsarDockerImageName;
+        }
+        container.setImage(imageName);
 
         container.setImagePullPolicy(imagePullPolicy);
 

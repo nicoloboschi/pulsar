@@ -768,6 +768,14 @@ public class WorkerConfig implements Serializable, PulsarConfiguration {
     )
     private boolean exposeAdminClientEnabled = false;
 
+    @FieldContext(
+            category = CATEGORY_WORKER,
+            doc = "Enable to expose Pulsar Admin Client from Function Context, default is disabled"
+    )
+    private String connectorsCatalogueUrl;
+
+
+
     public static WorkerConfig load(String yamlFile) throws IOException {
         if (isBlank(yamlFile)) {
             return new WorkerConfig();

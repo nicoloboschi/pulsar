@@ -316,74 +316,80 @@ public class SourceConfigUtils {
         }
 
         String sourceClassName = sourceConfig.getClassName();
-        // if class name in source config is not set, this should be a built-in source
-        // thus we should try to find it class name in the NAR service definition
-        if (sourceClassName == null) {
+        if (sourceClassLoader != null) {
+            // if class name in source config is not set, this should be a built-in source
+            // thus we should try to find it class name in the NAR service definition
+            if (sourceClassName == null) {
+                try {
+                    sourceClassName = ConnectorUtils.getIOSourceClass((NarClassLoader) sourceClassLoader);
+                } catch (IOException e) {
+                    throw new IllegalArgumentException("Failed to extract source class from archive", e);
+                }
+            }
+
+            // check if source implements the correct interfaces
+            Class sourceClass;
             try {
-                sourceClassName = ConnectorUtils.getIOSourceClass((NarClassLoader) sourceClassLoader);
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Failed to extract source class from archive", e);
-            }
-        }
-
-        // check if source implements the correct interfaces
-        Class sourceClass;
-        try {
-            sourceClass = sourceClassLoader.loadClass(sourceClassName);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException(
-              String.format("Source class %s not found in class loader", sourceClassName), e);
-        }
-
-        if (!Source.class.isAssignableFrom(sourceClass) && !BatchSource.class.isAssignableFrom(sourceClass)) {
-            throw new IllegalArgumentException(
-              String.format("Source class %s does not implement the correct interface",
-                sourceClass.getName()));
-        }
-
-        if (BatchSource.class.isAssignableFrom(sourceClass)) {
-            if (sourceConfig.getBatchSourceConfig() != null) {
-                validateBatchSourceConfig(sourceConfig.getBatchSourceConfig());
-            } else {
+                sourceClass = sourceClassLoader.loadClass(sourceClassName);
+            } catch (ClassNotFoundException e) {
                 throw new IllegalArgumentException(
-                  String.format("Source class %s implements %s but batch source source config is not specified",
-                    sourceClass.getName(), BatchSource.class.getName()));
+                        String.format("Source class %s not found in class loader", sourceClassName), e);
             }
+
+            if (!Source.class.isAssignableFrom(sourceClass) && !BatchSource.class.isAssignableFrom(sourceClass)) {
+                throw new IllegalArgumentException(
+                        String.format("Source class %s does not implement the correct interface",
+                                sourceClass.getName()));
+            }
+
+            if (BatchSource.class.isAssignableFrom(sourceClass)) {
+                if (sourceConfig.getBatchSourceConfig() != null) {
+                    validateBatchSourceConfig(sourceConfig.getBatchSourceConfig());
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("Source class %s implements %s but batch source source config is not specified",
+                                    sourceClass.getName(), BatchSource.class.getName()));
+                }
+            }
+
+
+            // extract type from source class
+            Class<?> typeArg = getSourceType(sourceClass);
+
+            // Only one of serdeClassName or schemaType should be set
+            if (!StringUtils.isEmpty(sourceConfig.getSerdeClassName()) && !StringUtils
+                    .isEmpty(sourceConfig.getSchemaType())) {
+                throw new IllegalArgumentException("Only one of serdeClassName or schemaType should be set");
+            }
+
+            if (!StringUtils.isEmpty(sourceConfig.getSerdeClassName())) {
+                ValidatorUtils.validateSerde(sourceConfig.getSerdeClassName(), typeArg, sourceClassLoader, false);
+            }
+            if (!StringUtils.isEmpty(sourceConfig.getSchemaType())) {
+                ValidatorUtils.validateSchema(sourceConfig.getSchemaType(), typeArg, sourceClassLoader, false);
+            }
+
+            if (sourceConfig.getProducerConfig() != null && sourceConfig.getProducerConfig().getCryptoConfig() != null) {
+                ValidatorUtils
+                        .validateCryptoKeyReader(sourceConfig.getProducerConfig().getCryptoConfig(), sourceClassLoader,
+                                true);
+            }
+
+            if (typeArg.equals(TypeResolver.Unknown.class)) {
+                throw new IllegalArgumentException(
+                        String.format("Failed to resolve type for Source class %s", sourceClassName));
+            }
+
+            // validate user defined config if enabled and source is loaded from NAR
+            if (validateConnectorConfig && sourceClassLoader instanceof NarClassLoader) {
+                validateSourceConfig(sourceConfig, (NarClassLoader) sourceClassLoader);
+            }
+            return new ExtractedSourceDetails(sourceClassName, typeArg.getName());
+        } else {
+            return new ExtractedSourceDetails(sourceClassName, null);
         }
 
-        // extract type from source class
-        Class<?> typeArg = getSourceType(sourceClass);
 
-        // Only one of serdeClassName or schemaType should be set
-        if (!StringUtils.isEmpty(sourceConfig.getSerdeClassName()) && !StringUtils
-                .isEmpty(sourceConfig.getSchemaType())) {
-            throw new IllegalArgumentException("Only one of serdeClassName or schemaType should be set");
-        }
-
-        if (!StringUtils.isEmpty(sourceConfig.getSerdeClassName())) {
-            ValidatorUtils.validateSerde(sourceConfig.getSerdeClassName(), typeArg, sourceClassLoader, false);
-        }
-        if (!StringUtils.isEmpty(sourceConfig.getSchemaType())) {
-            ValidatorUtils.validateSchema(sourceConfig.getSchemaType(), typeArg, sourceClassLoader, false);
-        }
-
-        if (sourceConfig.getProducerConfig() != null && sourceConfig.getProducerConfig().getCryptoConfig() != null) {
-            ValidatorUtils
-                    .validateCryptoKeyReader(sourceConfig.getProducerConfig().getCryptoConfig(), sourceClassLoader,
-                            true);
-        }
-
-        if (typeArg.equals(TypeResolver.Unknown.class)) {
-            throw new IllegalArgumentException(
-              String.format("Failed to resolve type for Source class %s", sourceClassName));
-        }
-
-        // validate user defined config if enabled and source is loaded from NAR
-        if (validateConnectorConfig && sourceClassLoader instanceof NarClassLoader) {
-            validateSourceConfig(sourceConfig, (NarClassLoader) sourceClassLoader);
-        }
-
-        return new ExtractedSourceDetails(sourceClassName, typeArg.getName());
     }
 
     @SneakyThrows

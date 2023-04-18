@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -36,6 +37,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.broker.authentication.AuthenticationParameters;
@@ -54,8 +57,10 @@ import org.apache.pulsar.functions.instance.InstanceUtils;
 import org.apache.pulsar.functions.proto.Function;
 import org.apache.pulsar.functions.proto.InstanceCommunication;
 import org.apache.pulsar.functions.utils.ComponentTypeUtils;
+import org.apache.pulsar.functions.utils.FunctionCommon;
 import org.apache.pulsar.functions.utils.SinkConfigUtils;
 import org.apache.pulsar.functions.utils.io.Connector;
+import org.apache.pulsar.functions.worker.ConnectorsManager;
 import org.apache.pulsar.functions.worker.FunctionMetaDataManager;
 import org.apache.pulsar.functions.worker.PulsarWorkerService;
 import org.apache.pulsar.functions.worker.WorkerUtils;
@@ -217,7 +222,9 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
                 throw new RestException(Response.Status.INTERNAL_SERVER_ERROR, e.getMessage());
             }
 
-            functionMetaDataBuilder.setPackageLocation(packageLocationMetaDataBuilder);
+            if (packageLocationMetaDataBuilder != null) {
+                functionMetaDataBuilder.setPackageLocation(packageLocationMetaDataBuilder);
+            }
 
             String transformFunction = sinkConfig.getTransformFunction();
             if (isNotBlank(transformFunction)) {
@@ -676,15 +683,20 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
     }
 
     @Override
+    @SneakyThrows
     public List<ConfigFieldDefinition> getSinkConfigDefinition(String name) {
         if (!isWorkerServiceAvailable()) {
             throwUnavailableException();
         }
-        List<ConfigFieldDefinition> retval = this.worker().getConnectorsManager().getSinkConfigDefinition(name);
-        if (retval == null) {
+        final Connector connector = this.worker().getConnectorsManager().getConnector(name);
+        if (connector == null) {
             throw new RestException(Response.Status.NOT_FOUND, "builtin sink does not exist");
         }
-        return retval;
+        final List<ConfigFieldDefinition> sinkConfigFieldDefinitions = connector.getSinkConfigFieldDefinitions();
+        if (sinkConfigFieldDefinitions == null) {
+            throw new RestException(Response.Status.NOT_FOUND, "builtin sink does not have config definitions");
+        }
+        return sinkConfigFieldDefinitions;
     }
 
     private Function.FunctionDetails validateUpdateRequestParams(final String tenant,
@@ -701,6 +713,8 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
         org.apache.pulsar.common.functions.Utils.inferMissingArguments(sinkConfig);
 
         ClassLoader classLoader = null;
+        boolean isSinkFromCatalogue = false;
+        boolean shouldCloseClassLoader = false;
         // check if sink is builtin and extract classloader
         if (!StringUtils.isEmpty(sinkConfig.getArchive())) {
             String archive = sinkConfig.getArchive();
@@ -712,21 +726,24 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
                 if (connector == null) {
                     throw new IllegalArgumentException("Built-in sink is not available");
                 }
-                classLoader = connector.getClassLoader();
+                if (connector.isFromCatalogue()) {
+                    isSinkFromCatalogue = true;
+                } else {
+                    classLoader = connector.getClassLoader();
+                }
             }
         }
 
-        boolean shouldCloseClassLoader = false;
         try {
 
             // if sink is not builtin, attempt to extract classloader from package file if it exists
-            if (classLoader == null && sinkPackageFile != null) {
+            if (!isSinkFromCatalogue && classLoader == null && sinkPackageFile != null) {
                 classLoader = getClassLoaderFromPackage(sinkConfig.getClassName(),
                         sinkPackageFile, worker().getWorkerConfig().getNarExtractionDirectory());
                 shouldCloseClassLoader = true;
             }
 
-            if (classLoader == null) {
+            if (!isSinkFromCatalogue && classLoader == null) {
                 throw new IllegalArgumentException("Sink package is not provided");
             }
 
@@ -744,8 +761,14 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
                 }
             }
 
-            SinkConfigUtils.ExtractedSinkDetails sinkDetails = SinkConfigUtils.validateAndExtractDetails(
-                sinkConfig, classLoader, functionClassLoader, worker().getWorkerConfig().getValidateConnectorConfig());
+            final SinkConfigUtils.ExtractedSinkDetails sinkDetails;
+            if (isSinkFromCatalogue) {
+                sinkDetails = SinkConfigUtils.validateAndExtractDetailsForConnectorFromCatalogue(
+                        sinkConfig, functionClassLoader);
+            } else {
+                sinkDetails = SinkConfigUtils.validateAndExtractDetails(
+                        sinkConfig, classLoader, functionClassLoader, worker().getWorkerConfig().getValidateConnectorConfig());
+            }
 
             return SinkConfigUtils.convert(sinkConfig, sinkDetails);
         } finally {

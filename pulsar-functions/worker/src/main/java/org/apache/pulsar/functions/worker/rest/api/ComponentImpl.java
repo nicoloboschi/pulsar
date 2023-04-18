@@ -327,10 +327,13 @@ public abstract class ComponentImpl implements Component<PulsarWorkerService> {
                 File component;
                 switch (componentType) {
                     case SOURCE:
-                        component = worker().getConnectorsManager().getSourceArchive(builtin).toFile();
-                        break;
-                    case SINK:
-                        component = worker().getConnectorsManager().getSinkArchive(builtin).toFile();
+                    case SINK: {
+                        final Connector connector = worker().getConnectorsManager().getConnector(builtin);
+                        if (connector.isFromCatalogue()) {
+                            return null;
+                        }
+                        component = connector.getArchivePath().toFile();
+                        }
                         break;
                     default:
                         component = worker().getFunctionsManager().getFunctionArchive(builtin).toFile();
@@ -500,8 +503,11 @@ public abstract class ComponentImpl implements Component<PulsarWorkerService> {
                 String.format("Error deleting %s @ /%s/%s/%s",
                         ComponentTypeUtils.toString(componentType), tenant, namespace, componentName));
 
-        deleteComponentFromStorage(tenant, namespace, componentName,
-                functionMetaData.getPackageLocation().getPackagePath());
+        if (functionMetaData.getPackageLocation() != null
+                && functionMetaData.getPackageLocation().getPackagePath() != null) {
+            deleteComponentFromStorage(tenant, namespace, componentName,
+                    functionMetaData.getPackageLocation().getPackagePath());
+        }
 
         if (!isEmpty(functionMetaData.getTransformFunctionPackageLocation().getPackagePath())) {
             deleteComponentFromStorage(tenant, namespace, componentName,

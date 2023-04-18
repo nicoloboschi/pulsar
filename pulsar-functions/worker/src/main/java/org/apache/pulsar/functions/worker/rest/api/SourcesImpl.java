@@ -25,6 +25,7 @@ import static org.apache.pulsar.functions.utils.FunctionCommon.isFunctionCodeBui
 import static org.apache.pulsar.functions.worker.rest.RestUtils.throwUnavailableException;
 import com.google.protobuf.ByteString;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,6 +36,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.broker.authentication.AuthenticationParameters;
@@ -53,6 +56,7 @@ import org.apache.pulsar.functions.instance.InstanceUtils;
 import org.apache.pulsar.functions.proto.Function;
 import org.apache.pulsar.functions.proto.InstanceCommunication;
 import org.apache.pulsar.functions.utils.ComponentTypeUtils;
+import org.apache.pulsar.functions.utils.SinkConfigUtils;
 import org.apache.pulsar.functions.utils.SourceConfigUtils;
 import org.apache.pulsar.functions.utils.io.Connector;
 import org.apache.pulsar.functions.worker.FunctionMetaDataManager;
@@ -637,22 +641,27 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
     }
 
     @Override
+    @SneakyThrows
     public List<ConfigFieldDefinition> getSourceConfigDefinition(String name) {
         if (!isWorkerServiceAvailable()) {
             throwUnavailableException();
         }
-        List<ConfigFieldDefinition> retval = this.worker().getConnectorsManager().getSourceConfigDefinition(name);
-        if (retval == null) {
+        final Connector connector = this.worker().getConnectorsManager().getConnector(name);
+        if (connector == null) {
             throw new RestException(Response.Status.NOT_FOUND, "builtin source does not exist");
         }
-        return retval;
+        final List<ConfigFieldDefinition> sourceConfigFieldDefinitions = connector.getSourceConfigFieldDefinitions();
+        if (sourceConfigFieldDefinitions == null) {
+            throw new RestException(Response.Status.NOT_FOUND, "builtin source does not have config definitions");
+        }
+        return sourceConfigFieldDefinitions;
     }
 
     private Function.FunctionDetails validateUpdateRequestParams(final String tenant,
                                                                  final String namespace,
                                                                  final String sourceName,
                                                                  final SourceConfig sourceConfig,
-                                                                 final File sourcePackageFile) {
+                                                                 final File sourcePackageFile) throws IOException {
         // The rest end points take precedence over whatever is there in sourceconfig
         sourceConfig.setTenant(tenant);
         sourceConfig.setNamespace(namespace);
@@ -660,6 +669,7 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
         org.apache.pulsar.common.functions.Utils.inferMissingArguments(sourceConfig);
 
         ClassLoader classLoader = null;
+        boolean isSourceFromCatalogue = false;
         // check if source is builtin and extract classloader
         if (!StringUtils.isEmpty(sourceConfig.getArchive())) {
             String archive = sourceConfig.getArchive();
@@ -671,20 +681,24 @@ public class SourcesImpl extends ComponentImpl implements Sources<PulsarWorkerSe
                 if (connector == null) {
                     throw new IllegalArgumentException("Built-in source is not available");
                 }
-                classLoader = connector.getClassLoader();
+                if (connector.isFromCatalogue()) {
+                    isSourceFromCatalogue = true;
+                } else {
+                    classLoader = connector.getClassLoader();
+                }
             }
         }
 
         boolean shouldCloseClassLoader = false;
         try {
             // if source is not builtin, attempt to extract classloader from package file if it exists
-            if (classLoader == null && sourcePackageFile != null) {
+            if (!isSourceFromCatalogue && classLoader == null && sourcePackageFile != null) {
                 classLoader = getClassLoaderFromPackage(sourceConfig.getClassName(),
                         sourcePackageFile, worker().getWorkerConfig().getNarExtractionDirectory());
                 shouldCloseClassLoader = true;
             }
 
-            if (classLoader == null) {
+            if (!isSourceFromCatalogue && classLoader == null) {
                 throw new IllegalArgumentException("Source package is not provided");
             }
 
