@@ -212,6 +212,8 @@ public class ConnectorUtils {
                 connectorBuilder.dockerImageName(entry.getDockerImage());
                 all.put(cntDef.getName(), connectorBuilder.build());
             }
+        } else {
+            log.info("Catalogue not set");
         }
         return all;
 

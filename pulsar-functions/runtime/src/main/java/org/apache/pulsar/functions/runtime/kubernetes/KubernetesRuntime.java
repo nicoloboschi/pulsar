@@ -71,9 +71,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.functions.auth.KubernetesFunctionAuthProvider;
 import org.apache.pulsar.functions.instance.AuthenticationConfig;
 import org.apache.pulsar.functions.instance.InstanceConfig;
@@ -855,8 +857,35 @@ public class KubernetesRuntime implements Runtime {
 
     protected List<String> getExecutorCommand() {
         List<String> cmds = new ArrayList<>();
-        final Connector connector = connectorsManager.getConnector(instanceConfig.getFunctionDetails().getBuiltin());
-        if (connector != null && connector.isFromCatalogue()) {
+
+        Function.FunctionDetails.ComponentType componentType =
+                InstanceUtils.calculateSubjectType(instanceConfig.getFunctionDetails());
+
+        final String builtin;
+        if (componentType == Function.FunctionDetails.ComponentType.SOURCE) {
+            builtin = instanceConfig.getFunctionDetails().getSource().getBuiltin();
+        } else if (componentType == Function.FunctionDetails.ComponentType.SINK) {
+            builtin = instanceConfig.getFunctionDetails().getSink().getBuiltin();
+        } else {
+            builtin = null;
+        }
+        boolean needDownload = true;
+        log.info("looking for connector builtin={}, component={}", builtin, componentType);
+
+        if (builtin != null) {
+            final Connector connector = connectorsManager.getConnector(builtin);
+            log.info("got connector {} using {}, all connectors {}", connector, builtin,
+                    connectorsManager.getConnectors().keySet());
+            if (connector != null && connector.isFromCatalogue()) {
+                needDownload = false;
+            }
+        }
+
+        if (!needDownload) {
+            cmds.add("mkdir");
+            cmds.add("-p");
+            cmds.add(originalCodeFileName);
+            cmds.add("&&");
             cmds.add("cp");
             cmds.add("/pulsar/connector/*.nar");
             cmds.add(originalCodeFileName);
@@ -1064,8 +1093,18 @@ public class KubernetesRuntime implements Runtime {
 
         String imageName = null;
 
-        if (instanceConfig.getFunctionDetails().getBuiltin() != null) {
-            final Connector connector = connectorsManager.getConnector(instanceConfig.getFunctionDetails().getBuiltin());
+        Function.FunctionDetails.ComponentType componentType =
+                InstanceUtils.calculateSubjectType(instanceConfig.getFunctionDetails());
+        final String builtin;
+        if (componentType == Function.FunctionDetails.ComponentType.SOURCE) {
+            builtin = instanceConfig.getFunctionDetails().getSource().getBuiltin();
+        } else if (componentType == Function.FunctionDetails.ComponentType.SINK) {
+            builtin = instanceConfig.getFunctionDetails().getSink().getBuiltin();
+        } else {
+            builtin = null;
+        }
+        if (builtin != null) {
+            final Connector connector = connectorsManager.getConnector(builtin);
             if (connector != null) {
                 imageName = connector.getFunctionsPodDockerImage();
             }

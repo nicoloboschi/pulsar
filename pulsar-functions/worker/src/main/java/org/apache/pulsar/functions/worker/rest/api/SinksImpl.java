@@ -222,7 +222,9 @@ public class SinksImpl extends ComponentImpl implements Sinks<PulsarWorkerServic
                 throw new RestException(Response.Status.INTERNAL_SERVER_ERROR, e.getMessage());
             }
 
-            functionMetaDataBuilder.setPackageLocation(packageLocationMetaDataBuilder);
+            if (packageLocationMetaDataBuilder != null) {
+                functionMetaDataBuilder.setPackageLocation(packageLocationMetaDataBuilder);
+            }
 
             String transformFunction = sinkConfig.getTransformFunction();
             if (isNotBlank(transformFunction)) {
