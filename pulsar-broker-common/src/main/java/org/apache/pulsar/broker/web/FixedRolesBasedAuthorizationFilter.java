@@ -62,7 +62,8 @@ public abstract class FixedRolesBasedAuthorizationFilter implements Filter {
             final String role = getAuthenticatedRole(httpRequest);
             final AuthenticationDataSource authenticatedDataSource = getAuthenticatedDataSource(httpRequest);
 
-            boolean authorized = isAuthorized(role, authenticatedDataSource);
+            boolean authorized = authorizationService.allowToScrapeMetrics(role, authenticatedDataSource)
+                    .join();
             if (authorized) {
                 chain.doFilter(request, response);
             } else {
@@ -78,16 +79,6 @@ public abstract class FixedRolesBasedAuthorizationFilter implements Filter {
             httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
             LOG.error("[{}] Error performing authorization for HTTP", request.getRemoteAddr(), e);
         }
-    }
-
-    private boolean isAuthorized(String role, AuthenticationDataSource authenticatedDataSource) {
-        if (StringUtils.isBlank(role)) {
-            return false;
-        }
-        if (roles != null && roles.contains(role)) {
-            return true;
-        }
-        return authorizationService.isSuperUser(role, authenticatedDataSource).join();
     }
 
     @Override

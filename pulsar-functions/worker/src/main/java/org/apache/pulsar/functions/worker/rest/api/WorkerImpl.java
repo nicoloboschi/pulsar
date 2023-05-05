@@ -128,6 +128,26 @@ public class WorkerImpl implements Workers<PulsarWorkerService> {
         return ret;
     }
 
+    private void throwIfNotAuthorizedToScrapeMetrics(AuthenticationParameters authParams, String action) {
+        if (worker().getWorkerConfig().isAuthorizationEnabled()) {
+            return;
+        }
+
+        try {
+            if (authParams.getClientRole() == null || !worker().getAuthorizationService().allowToScrapeMetrics(authParams)
+                    .get(worker().getWorkerConfig().getMetadataStoreOperationTimeoutSeconds(), SECONDS)) {
+                log.error("Client with role [{}] and originalPrincipal [{}] is not authorized to {}",
+                        authParams.getClientRole(), authParams.getOriginalPrincipal(), action);
+                throw new RestException(Status.UNAUTHORIZED, "Client is not authorized to perform operation");
+            }
+        } catch (ExecutionException | TimeoutException | InterruptedException e) {
+            log.warn("Time-out {} sec while checking the role {} originalPrincipal {} is a allowed to scrape metrics",
+                    worker().getWorkerConfig().getMetadataStoreOperationTimeoutSeconds(),
+                    authParams.getClientRole(), authParams.getOriginalPrincipal());
+            throw new RestException(Status.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
     private void throwIfNotSuperUser(AuthenticationParameters authParams, String action) {
         if (worker().getWorkerConfig().isAuthorizationEnabled()) {
             try {
@@ -151,7 +171,7 @@ public class WorkerImpl implements Workers<PulsarWorkerService> {
         if (!isWorkerServiceAvailable() || worker().getMetricsGenerator() == null) {
             throwUnavailableException();
         }
-        throwIfNotSuperUser(authParams, "get worker stats");
+        throwIfNotAuthorizedToScrapeMetrics(authParams, "get worker stats");
         return worker().getMetricsGenerator().generate();
     }
 
@@ -162,7 +182,7 @@ public class WorkerImpl implements Workers<PulsarWorkerService> {
             throwUnavailableException();
         }
 
-        throwIfNotSuperUser(authParams, "get function stats");
+        throwIfNotAuthorizedToScrapeMetrics(authParams, "get function stats");
 
         Map<String, FunctionRuntimeInfo> functionRuntimes = worker().getFunctionRuntimeManager()
                 .getFunctionRuntimeInfos();
