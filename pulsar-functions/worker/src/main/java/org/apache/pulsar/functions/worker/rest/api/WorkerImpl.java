@@ -50,7 +50,6 @@ import org.apache.pulsar.functions.worker.FunctionRuntimeManager;
 import org.apache.pulsar.functions.worker.MembershipManager;
 import org.apache.pulsar.functions.worker.PulsarWorkerService;
 import org.apache.pulsar.functions.worker.SchedulerManager;
-import org.apache.pulsar.functions.worker.WorkerConfig;
 import org.apache.pulsar.functions.worker.WorkerService;
 import org.apache.pulsar.functions.worker.WorkerUtils;
 import org.apache.pulsar.functions.worker.service.api.Workers;
@@ -133,16 +132,18 @@ public class WorkerImpl implements Workers<PulsarWorkerService> {
             return;
         }
 
+        final int metadataStoreOperationTimeoutSeconds = worker()
+                .getWorkerConfig().getMetadataStoreOperationTimeoutSeconds();
         try {
-            if (authParams.getClientRole() == null || !worker().getAuthorizationService().allowToScrapeMetrics(authParams)
-                    .get(worker().getWorkerConfig().getMetadataStoreOperationTimeoutSeconds(), SECONDS)) {
+            if (authParams.getClientRole() == null || !worker().getAuthorizationService()
+                    .allowToScrapeMetrics(authParams).get(metadataStoreOperationTimeoutSeconds, SECONDS)) {
                 log.error("Client with role [{}] and originalPrincipal [{}] is not authorized to {}",
                         authParams.getClientRole(), authParams.getOriginalPrincipal(), action);
                 throw new RestException(Status.UNAUTHORIZED, "Client is not authorized to perform operation");
             }
         } catch (ExecutionException | TimeoutException | InterruptedException e) {
             log.warn("Time-out {} sec while checking the role {} originalPrincipal {} is a allowed to scrape metrics",
-                    worker().getWorkerConfig().getMetadataStoreOperationTimeoutSeconds(),
+                    metadataStoreOperationTimeoutSeconds,
                     authParams.getClientRole(), authParams.getOriginalPrincipal());
             throw new RestException(Status.INTERNAL_SERVER_ERROR, e.getMessage());
         }
