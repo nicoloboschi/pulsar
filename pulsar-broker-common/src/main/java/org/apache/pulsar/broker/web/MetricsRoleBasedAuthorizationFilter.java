@@ -19,7 +19,6 @@
 package org.apache.pulsar.broker.web;
 
 import java.io.IOException;
-import java.util.Set;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -34,24 +33,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Servlet filter that authorize the request only if the client role matches the configured set of roles.
- * Super users are always authorized.
+ * Servlet filter that authorize the request only if the client role is a metric role or a super user.
  */
-public abstract class FixedRolesBasedAuthorizationFilter implements Filter {
-    private static final Logger LOG = LoggerFactory.getLogger(FixedRolesBasedAuthorizationFilter.class);
+public class MetricsRoleBasedAuthorizationFilter implements Filter {
+    private static final Logger LOG = LoggerFactory.getLogger(MetricsRoleBasedAuthorizationFilter.class);
 
-    private final Set<String> roles;
     private final AuthorizationService authorizationService;
 
-    public FixedRolesBasedAuthorizationFilter(Set<String> roles,
-                                              AuthorizationService authorizationService) {
-        this.roles = roles;
+    public MetricsRoleBasedAuthorizationFilter(AuthorizationService authorizationService) {
         this.authorizationService = authorizationService;
     }
 
-    public abstract String getAuthenticatedRole(HttpServletRequest request);
+    protected String getAuthenticatedRole(HttpServletRequest request) {
+        return (String) request
+                .getAttribute(AuthenticationFilter.AuthenticatedRoleAttributeName);
+    }
 
-    public abstract AuthenticationDataSource getAuthenticatedDataSource(HttpServletRequest request);
+    protected AuthenticationDataSource getAuthenticatedDataSource(HttpServletRequest request) {
+        return (AuthenticationDataSource) request
+                .getAttribute(AuthenticationFilter.AuthenticatedDataAttributeName);
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -63,6 +64,9 @@ public abstract class FixedRolesBasedAuthorizationFilter implements Filter {
 
             boolean authorized = authorizationService.allowToScrapeMetrics(role, authenticatedDataSource)
                     .join();
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("[{}] Role {} authorized to scrape metrics: {}", httpRequest.getRemoteAddr(), role, authorized);
+            }
             if (authorized) {
                 chain.doFilter(request, response);
             } else {

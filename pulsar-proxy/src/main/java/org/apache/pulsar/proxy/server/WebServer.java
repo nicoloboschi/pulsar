@@ -35,7 +35,7 @@ import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
 import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.web.AuthenticationFilter;
-import org.apache.pulsar.broker.web.FixedRolesBasedAuthorizationFilter;
+import org.apache.pulsar.broker.web.MetricsRoleBasedAuthorizationFilter;
 import org.apache.pulsar.broker.web.JettyRequestLogFactory;
 import org.apache.pulsar.broker.web.JsonMapperProvider;
 import org.apache.pulsar.broker.web.RateLimitingFilter;
@@ -162,26 +162,6 @@ public class WebServer {
         return serviceURI;
     }
 
-    private static class MetricsRoleAuthorizationFilter extends FixedRolesBasedAuthorizationFilter {
-
-        public MetricsRoleAuthorizationFilter(ProxyConfiguration configuration,
-                                              AuthorizationService authorizationService) {
-            super(configuration.getMetricsRoles(), authorizationService);
-        }
-
-        @Override
-        public String getAuthenticatedRole(HttpServletRequest request) {
-            return (String) request
-                    .getAttribute(AuthenticationFilter.AuthenticatedRoleAttributeName);
-        }
-
-        @Override
-        public AuthenticationDataSource getAuthenticatedDataSource(HttpServletRequest request) {
-            return (AuthenticationDataSource) request
-                    .getAttribute(AuthenticationFilter.AuthenticatedDataAttributeName);
-        }
-    }
-
     private static class FilterInitializer {
         private final List<FilterHolder> filterHolders = new ArrayList<>();
         private final FilterHolder authenticationFilterHolder;
@@ -208,7 +188,8 @@ public class WebServer {
                 filterHolders.add(authenticationFilterHolder);
                 if (config.isAuthorizationEnabled()) {
                     metricsAuthorizationFilterHolder = new FilterHolder(
-                            new MetricsRoleAuthorizationFilter(config, authorizationService));
+                            new MetricsRoleBasedAuthorizationFilter(authorizationService)
+                    );
                     filterHolders.add(metricsAuthorizationFilterHolder);
                 } else {
                     metricsAuthorizationFilterHolder = null;

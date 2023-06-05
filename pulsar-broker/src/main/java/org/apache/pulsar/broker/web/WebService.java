@@ -200,26 +200,6 @@ public class WebService implements AutoCloseable {
         addServlet(basePath, servletHolder, requiresAuthentication, attributeMap);
     }
 
-    private static class MetricsRoleAuthorizationFilter extends FixedRolesBasedAuthorizationFilter {
-
-        public MetricsRoleAuthorizationFilter(ServiceConfiguration configuration,
-                                              AuthorizationService authorizationService) {
-            super(configuration.getMetricsRoles(), authorizationService);
-        }
-
-        @Override
-        public String getAuthenticatedRole(HttpServletRequest request) {
-            return (String) request
-                    .getAttribute(AuthenticationFilter.AuthenticatedRoleAttributeName);
-        }
-
-        @Override
-        public AuthenticationDataSource getAuthenticatedDataSource(HttpServletRequest request) {
-            return (AuthenticationDataSource) request
-                    .getAttribute(AuthenticationFilter.AuthenticatedDataAttributeName);
-        }
-    }
-
     private static class FilterInitializer {
         private final List<FilterHolder> filterHolders = new ArrayList<>();
         private final FilterHolder authenticationFilterHolder;
@@ -252,9 +232,11 @@ public class WebService implements AutoCloseable {
                         pulsarService.getBrokerService().getAuthenticationService()));
                 filterHolders.add(authenticationFilterHolder);
                 if (config.isAuthorizationEnabled()) {
+                    final AuthorizationService authorizationService = pulsarService
+                            .getBrokerService().getAuthorizationService();
                     metricsAuthorizationFilterHolder = new FilterHolder(
-                            new MetricsRoleAuthorizationFilter(config,
-                                    pulsarService.getBrokerService().getAuthorizationService()));
+                            new MetricsRoleBasedAuthorizationFilter(authorizationService)
+                    );
                     filterHolders.add(metricsAuthorizationFilterHolder);
                 } else {
                     metricsAuthorizationFilterHolder = null;
