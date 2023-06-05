@@ -2834,8 +2834,8 @@ public class ServiceConfiguration implements PulsarConfiguration {
     @FieldContext(
             category = CATEGORY_METRICS,
             doc = "Whether the '/metrics' endpoint requires authorization. Defaults to true."
-                    + "'authenticateMetricsEndpoint' must also be set for this to take effect." +
-                    "The super user roles and metrics roles will be allowed for the metrics endpoints."
+                    + "'authenticateMetricsEndpoint' must also be set for this to take effect."
+                    + "The super user roles and metrics roles will be allowed for the metrics endpoints."
     )
     private boolean authorizeMetricsEndpoint = true;
     @FieldContext(
