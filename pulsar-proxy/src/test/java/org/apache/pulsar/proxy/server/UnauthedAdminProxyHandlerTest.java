@@ -31,8 +31,10 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 
 import lombok.Cleanup;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.auth.MockedPulsarServiceBaseTest;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
+import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.resources.PulsarResources;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.common.configuration.PulsarConfigurationLoader;
@@ -76,11 +78,11 @@ public class UnauthedAdminProxyHandlerTest extends MockedPulsarServiceBaseTest {
         proxyConfig.setMetadataStoreUrl(DUMMY_VALUE);
         proxyConfig.setConfigurationMetadataStoreUrl(GLOBAL_DUMMY_VALUE);
 
-        webServer = new WebServer(proxyConfig, new AuthenticationService(
-                                          PulsarConfigurationLoader.convertFrom(proxyConfig)));
-
         resource = new PulsarResources(new ZKMetadataStore(mockZooKeeper),
                 new ZKMetadataStore(mockZooKeeperGlobal));
+        final ServiceConfiguration serviceConf = PulsarConfigurationLoader.convertFrom(proxyConfig);
+        webServer = new WebServer(proxyConfig, new AuthenticationService(serviceConf),
+                new AuthorizationService(serviceConf, resource));
         discoveryProvider = spy(new BrokerDiscoveryProvider(proxyConfig, resource));
         adminProxyHandler = new AdminProxyWrapper(proxyConfig, discoveryProvider);
         ServletHolder servletHolder = new ServletHolder(adminProxyHandler);
@@ -88,7 +90,7 @@ public class UnauthedAdminProxyHandlerTest extends MockedPulsarServiceBaseTest {
         webServer.addServlet("/lookup", servletHolder);
 
         webServer.addRestResource("/", VipStatus.ATTRIBUTE_STATUS_FILE_PATH, proxyConfig.getStatusFilePath(),
-                VipStatus.class);
+                VipStatus.class, false, false);
 
         // start web-service
         webServer.start();

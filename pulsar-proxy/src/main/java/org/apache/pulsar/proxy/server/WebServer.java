@@ -29,9 +29,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import javax.servlet.DispatcherType;
+import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
+import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.web.AuthenticationFilter;
+import org.apache.pulsar.broker.web.MetricsRoleBasedAuthorizationFilter;
 import org.apache.pulsar.broker.web.JettyRequestLogFactory;
 import org.apache.pulsar.broker.web.JsonMapperProvider;
 import org.apache.pulsar.broker.web.RateLimitingFilter;
@@ -68,7 +72,6 @@ public class WebServer {
 
     private final Server server;
     private final WebExecutorThreadPool webServiceExecutor;
-    private final AuthenticationService authenticationService;
     private final List<String> servletPaths = new ArrayList<>();
     private final List<Handler> handlers = new ArrayList<>();
     private final ProxyConfiguration config;
@@ -80,15 +83,21 @@ public class WebServer {
 
     private final FilterInitializer filterInitializer;
 
-    public WebServer(ProxyConfiguration config, AuthenticationService authenticationService) {
+    public WebServer(ProxyService proxyService) {
+        this(proxyService.getConfiguration(), proxyService.getAuthenticationService(),
+                proxyService.getAuthorizationService());
+    }
+
+    public WebServer(ProxyConfiguration config,
+                     AuthenticationService authenticationService,
+                     AuthorizationService authorizationService) {
+        this.config = config;
         this.webServiceExecutor = new WebExecutorThreadPool(config.getHttpNumThreads(), "pulsar-external-web",
                 config.getHttpServerThreadPoolQueueSize());
         this.server = new Server(webServiceExecutor);
         if (config.getMaxHttpServerConnections() > 0) {
             server.addBean(new ConnectionLimit(config.getMaxHttpServerConnections(), server));
         }
-        this.authenticationService = authenticationService;
-        this.config = config;
 
         List<ServerConnector> connectors = new ArrayList<>();
 
@@ -146,7 +155,7 @@ public class WebServer {
         connectors.stream().forEach(c -> c.setAcceptQueueSize(config.getHttpServerAcceptQueueSize()));
         server.setConnectors(connectors.toArray(new ServerConnector[connectors.size()]));
 
-        filterInitializer = new FilterInitializer(config, authenticationService);
+        filterInitializer = new FilterInitializer(config, authenticationService, authorizationService);
     }
 
     public URI getServiceUri() {
@@ -156,8 +165,11 @@ public class WebServer {
     private static class FilterInitializer {
         private final List<FilterHolder> filterHolders = new ArrayList<>();
         private final FilterHolder authenticationFilterHolder;
+        private final FilterHolder metricsAuthorizationFilterHolder;
 
-        FilterInitializer(ProxyConfiguration config, AuthenticationService authenticationService) {
+        FilterInitializer(ProxyConfiguration config,
+                          AuthenticationService authenticationService,
+                          AuthorizationService authorizationService) {
             if (config.getMaxConcurrentHttpRequests() > 0) {
                 FilterHolder filterHolder = new FilterHolder(QoSFilter.class);
                 filterHolder.setInitParameter("maxRequests", String.valueOf(config.getMaxConcurrentHttpRequests()));
@@ -170,19 +182,34 @@ public class WebServer {
             }
 
             if (config.isAuthenticationEnabled()) {
-                authenticationFilterHolder = new FilterHolder(new AuthenticationFilter(authenticationService));
+                authenticationFilterHolder = new FilterHolder(
+                        new AuthenticationFilter(authenticationService)
+                );
                 filterHolders.add(authenticationFilterHolder);
+                if (config.isAuthorizationEnabled()) {
+                    metricsAuthorizationFilterHolder = new FilterHolder(
+                            new MetricsRoleBasedAuthorizationFilter(authorizationService)
+                    );
+                    filterHolders.add(metricsAuthorizationFilterHolder);
+                } else {
+                    metricsAuthorizationFilterHolder = null;
+                }
             } else {
                 authenticationFilterHolder = null;
+                metricsAuthorizationFilterHolder = null;
             }
         }
 
-        public void addFilters(ServletContextHandler context, boolean requiresAuthentication) {
+        public void addFilters(ServletContextHandler context,
+                               boolean requiresAuthentication, boolean requiresMetricsAuthorization) {
             for (FilterHolder filterHolder : filterHolders) {
-                if (requiresAuthentication || filterHolder != authenticationFilterHolder) {
-                    context.addFilter(filterHolder,
-                            MATCH_ALL, EnumSet.allOf(DispatcherType.class));
+                if (filterHolder == authenticationFilterHolder && !requiresAuthentication) {
+                    continue;
                 }
+                if (filterHolder == metricsAuthorizationFilterHolder && !requiresMetricsAuthorization) {
+                    continue;
+                }
+                context.addFilter(filterHolder, MATCH_ALL, EnumSet.allOf(DispatcherType.class));
             }
         }
     }
@@ -195,10 +222,15 @@ public class WebServer {
         addServlet(basePath, servletHolder, attributes, true);
     }
 
-    public void addServlet(String basePath, ServletHolder servletHolder,
-                           List<Pair<String, Object>> attributes, boolean requireAuthentication) {
-        popularServletParams(servletHolder, config);
+    public void addServlet(String basePath, ServletHolder servletHolder, List<Pair<String, Object>> attributes,
+                           boolean requireAuthentication) {
+        addServlet(basePath, servletHolder, attributes, requireAuthentication, false);
+    }
 
+    public void addServlet(String basePath, ServletHolder servletHolder,
+                           List<Pair<String, Object>> attributes,
+                           boolean requireAuthentication, boolean requireMetricsAuthorization) {
+        popularServletParams(servletHolder, config);
         Optional<String> existingPath = servletPaths.stream().filter(p -> p.startsWith(basePath)).findFirst();
         if (existingPath.isPresent()) {
             throw new IllegalArgumentException(
@@ -213,7 +245,7 @@ public class WebServer {
             context.setAttribute(attribute.getLeft(), attribute.getRight());
         }
 
-        filterInitializer.addFilters(context, requireAuthentication);
+        filterInitializer.addFilters(context, requireAuthentication, requireMetricsAuthorization);
 
         handlers.add(context);
     }
@@ -231,7 +263,12 @@ public class WebServer {
         }
     }
 
-    public void addRestResource(String basePath, String attribute, Object attributeValue, Class<?> resourceClass) {
+    public void addRestResource(String basePath,
+                                String attribute,
+                                Object attributeValue,
+                                Class<?> resourceClass,
+                                boolean requireAuthentication,
+                                boolean requireMetricsAuthorization) {
         ResourceConfig config = new ResourceConfig();
         config.register(resourceClass);
         config.register(JsonMapperProvider.class);
@@ -241,6 +278,7 @@ public class WebServer {
         context.setContextPath(basePath);
         context.addServlet(servletHolder, MATCH_ALL);
         context.setAttribute(attribute, attributeValue);
+        filterInitializer.addFilters(context, requireAuthentication, requireMetricsAuthorization);
         handlers.add(context);
     }
 

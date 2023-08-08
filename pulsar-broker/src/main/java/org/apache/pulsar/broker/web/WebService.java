@@ -26,10 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.servlet.DispatcherType;
+import javax.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import org.apache.pulsar.broker.PulsarServerException;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.ServiceConfiguration;
+import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
+import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.jetty.tls.JettySslContextFactory;
 import org.eclipse.jetty.server.ConnectionLimit;
 import org.eclipse.jetty.server.Handler;
@@ -200,6 +203,7 @@ public class WebService implements AutoCloseable {
     private static class FilterInitializer {
         private final List<FilterHolder> filterHolders = new ArrayList<>();
         private final FilterHolder authenticationFilterHolder;
+        private final FilterHolder metricsAuthorizationFilterHolder;
         FilterInitializer(PulsarService pulsarService) {
             ServiceConfiguration config = pulsarService.getConfiguration();
             if (config.getMaxConcurrentHttpRequests() > 0) {
@@ -227,8 +231,19 @@ public class WebService implements AutoCloseable {
                 authenticationFilterHolder = new FilterHolder(new AuthenticationFilter(
                         pulsarService.getBrokerService().getAuthenticationService()));
                 filterHolders.add(authenticationFilterHolder);
+                if (config.isAuthorizationEnabled()) {
+                    final AuthorizationService authorizationService = pulsarService
+                            .getBrokerService().getAuthorizationService();
+                    metricsAuthorizationFilterHolder = new FilterHolder(
+                            new MetricsRoleBasedAuthorizationFilter(authorizationService)
+                    );
+                    filterHolders.add(metricsAuthorizationFilterHolder);
+                } else {
+                    metricsAuthorizationFilterHolder = null;
+                }
             } else {
                 authenticationFilterHolder = null;
+                metricsAuthorizationFilterHolder = null;
             }
 
             if (config.isDisableHttpDebugMethods()) {
@@ -246,18 +261,29 @@ public class WebService implements AutoCloseable {
             }
         }
 
-        public void addFilters(ServletContextHandler context, boolean requiresAuthentication) {
+        public void addFilters(ServletContextHandler context, boolean requiresAuthentication,
+                               boolean requiresMetricsAuthorization) {
             for (FilterHolder filterHolder : filterHolders) {
-                if (requiresAuthentication || filterHolder != authenticationFilterHolder) {
-                    context.addFilter(filterHolder,
-                            MATCH_ALL, EnumSet.allOf(DispatcherType.class));
+                if (filterHolder == authenticationFilterHolder && !requiresAuthentication) {
+                    continue;
                 }
+                if (filterHolder == metricsAuthorizationFilterHolder && !requiresMetricsAuthorization) {
+                    continue;
+                }
+                context.addFilter(filterHolder, MATCH_ALL, EnumSet.allOf(DispatcherType.class));
             }
         }
 
     }
 
     public void addServlet(String path, ServletHolder servletHolder, boolean requiresAuthentication,
+                           Map<String, Object> attributeMap) {
+        addServlet(path, servletHolder, requiresAuthentication, false, attributeMap);
+    }
+
+    public void addServlet(String path, ServletHolder servletHolder,
+                           boolean requiresAuthentication,
+                           boolean requiresMetricsAuthorization,
                            Map<String, Object> attributeMap) {
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         // Notice: each context path should be unique, but there's nothing here to verify that
@@ -266,7 +292,7 @@ public class WebService implements AutoCloseable {
         if (attributeMap != null) {
             attributeMap.forEach(context::setAttribute);
         }
-        filterInitializer.addFilters(context, requiresAuthentication);
+        filterInitializer.addFilters(context, requiresAuthentication, requiresMetricsAuthorization);
         handlers.add(context);
     }
 

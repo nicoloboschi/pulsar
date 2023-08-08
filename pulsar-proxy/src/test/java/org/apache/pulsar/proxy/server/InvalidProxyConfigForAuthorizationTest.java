@@ -21,8 +21,6 @@ package org.apache.pulsar.proxy.server;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
 
-import org.apache.pulsar.broker.authentication.AuthenticationService;
-import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 public class InvalidProxyConfigForAuthorizationTest {
@@ -32,8 +30,7 @@ public class InvalidProxyConfigForAuthorizationTest {
         ProxyConfiguration proxyConfiguration = new ProxyConfiguration();
         proxyConfiguration.setAuthorizationEnabled(true);
         proxyConfiguration.setAuthenticationEnabled(false);
-        try (ProxyService proxyService = new ProxyService(proxyConfiguration,
-                Mockito.mock(AuthenticationService.class))) {
+        try (ProxyService proxyService = new ProxyService(proxyConfiguration)) {
             proxyService.start();
             fail("An exception should have been thrown");
         } catch (Exception e) {

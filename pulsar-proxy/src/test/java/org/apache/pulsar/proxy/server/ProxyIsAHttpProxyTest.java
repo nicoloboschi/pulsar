@@ -37,8 +37,11 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.Response;
 
+import org.apache.pulsar.broker.PulsarServerException;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.auth.MockedPulsarServiceBaseTest;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
+import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.resources.PulsarResources;
 import org.apache.pulsar.common.configuration.PulsarConfigurationLoader;
 import org.apache.pulsar.metadata.impl.ZKMetadataStore;
@@ -57,6 +60,7 @@ import org.eclipse.jetty.util.ProcessorUtils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.logging.LoggingFeature;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
@@ -199,10 +203,8 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
 
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();
@@ -228,10 +230,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();
@@ -249,6 +248,17 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         }
     }
 
+    @NotNull
+    private WebServer newWebServer(ProxyConfiguration proxyConfig) throws PulsarServerException {
+        AuthenticationService authService = new AuthenticationService(
+                PulsarConfigurationLoader.convertFrom(proxyConfig));
+        AuthorizationService authzService = new AuthorizationService(
+                PulsarConfigurationLoader.convertFrom(proxyConfig), resource);
+
+        WebServer webServer = new WebServer(proxyConfig, authService, authzService);
+        return webServer;
+    }
+
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testTryingToUseExistingPath() throws Exception {
         Properties props = new Properties();
@@ -259,10 +269,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
 
@@ -278,10 +285,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();
@@ -305,10 +309,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();
@@ -331,10 +332,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();
@@ -356,15 +354,16 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
+        final ServiceConfiguration conf = PulsarConfigurationLoader.convertFrom(proxyConfig);
+        AuthenticationService authService = new AuthenticationService(conf);
+        AuthorizationService authzService = new AuthorizationService(conf, null);
 
         StringBuilder longUri = new StringBuilder("/service3/tp");
         for (int i = 10 * 1024; i > 0; i = i - 11){
             longUri.append("_sub1_RETRY");
         }
 
-        WebServer webServerMaxUriLen8k = new WebServer(proxyConfig, authService);
+        WebServer webServerMaxUriLen8k = new WebServer(proxyConfig, authService, authzService);
         ProxyServiceStarter.addWebServerHandlers(webServerMaxUriLen8k, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServerMaxUriLen8k.start();
@@ -376,7 +375,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         }
 
         proxyConfig.setHttpMaxRequestHeaderSize(12 * 1024);
-        WebServer webServerMaxUriLen12k = new WebServer(proxyConfig, authService);
+        WebServer webServerMaxUriLen12k = new WebServer(proxyConfig, authService, authzService);
         ProxyServiceStarter.addWebServerHandlers(webServerMaxUriLen12k, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServerMaxUriLen12k.start();
@@ -397,10 +396,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();
@@ -429,10 +425,7 @@ public class ProxyIsAHttpProxyTest extends MockedPulsarServiceBaseTest {
         props.setProperty("webServicePort", "0");
 
         ProxyConfiguration proxyConfig = PulsarConfigurationLoader.create(props, ProxyConfiguration.class);
-        AuthenticationService authService = new AuthenticationService(
-                PulsarConfigurationLoader.convertFrom(proxyConfig));
-
-        WebServer webServer = new WebServer(proxyConfig, authService);
+        WebServer webServer = newWebServer(proxyConfig);
         ProxyServiceStarter.addWebServerHandlers(webServer, proxyConfig, null,
                 new BrokerDiscoveryProvider(proxyConfig, resource));
         webServer.start();

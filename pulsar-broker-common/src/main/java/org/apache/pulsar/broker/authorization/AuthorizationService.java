@@ -815,4 +815,38 @@ public class AuthorizationService {
             throw new RestException(e.getCause());
         }
     }
+
+    public CompletableFuture<Boolean> allowToScrapeMetrics(AuthenticationParameters authParams) {
+        if (!isValidOriginalPrincipal(authParams)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (isMetricsRole(authParams.getOriginalPrincipal())) {
+            return CompletableFuture.completedFuture(true);
+        } else {
+            return isSuperUser(authParams);
+        }
+    }
+
+    public CompletableFuture<Boolean> allowToScrapeMetrics(String user,
+                                                           AuthenticationDataSource authenticationData) {
+        if (!conf.isAuthorizationEnabled() || isMetricsRole(user)) {
+            return CompletableFuture.completedFuture(true);
+        } else {
+            return isSuperUser(user, authenticationData);
+        }
+    }
+
+    private boolean isMetricsRole(String role) {
+        if (log.isDebugEnabled()) {
+            log.debug("Check if role {} is a metrics role", role);
+        }
+        if (!conf.isAuthenticateMetricsEndpoint() || !conf.isAuthorizeMetricsEndpoint()) {
+            return true;
+        }
+        final Set<String> metricsRoles = conf.getMetricsRoles();
+        if (metricsRoles != null && metricsRoles.contains(role)) {
+            return true;
+        }
+        return false;
+    }
 }

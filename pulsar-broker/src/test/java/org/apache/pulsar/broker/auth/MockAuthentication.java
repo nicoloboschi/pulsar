@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class MockAuthentication implements Authentication {
     private static final Logger log = LoggerFactory.getLogger(MockAuthentication.class);
+    public static final String HTTP_HEADER_USER = "mockuser";
     private final String user;
 
     public MockAuthentication(String user) {
@@ -52,7 +53,7 @@ public class MockAuthentication implements Authentication {
             public String getHttpAuthType() { return "mock"; }
             @Override
             public Set<Map.Entry<String, String>> getHttpHeaders() {
-                return Map.of("mockuser", user).entrySet();
+                return Map.of(HTTP_HEADER_USER, user).entrySet();
             }
             @Override
             public boolean hasDataFromCommand() {

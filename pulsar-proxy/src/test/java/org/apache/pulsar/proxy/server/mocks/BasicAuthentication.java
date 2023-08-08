@@ -16,37 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.pulsar.client.admin.internal;
+package org.apache.pulsar.proxy.server.mocks;
 
-import javax.ws.rs.client.WebTarget;
-import org.apache.pulsar.client.admin.ProxyStats;
-import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Authentication;
+import org.apache.pulsar.client.api.AuthenticationDataProvider;
+import org.apache.pulsar.client.api.PulsarClientException;
 
-public class ProxyStatsImpl extends BaseResource implements ProxyStats {
+import java.io.IOException;
+import java.util.Map;
 
-    private final WebTarget adminProxyStats;
+public class BasicAuthentication implements Authentication {
 
-    public ProxyStatsImpl(WebTarget target, Authentication auth, long readTimeoutMs) {
-        super(auth, readTimeoutMs);
-        adminProxyStats = target.path("/proxy-stats");
+    private String authParam;
+
+    @Override
+    public void close() throws IOException {
+        // noop
     }
 
     @Override
-    public String getConnections() throws PulsarAdminException {
+    public String getAuthMethodName() {
+        return "BasicAuthentication";
+    }
+
+    @Override
+    public AuthenticationDataProvider getAuthData() throws PulsarClientException {
         try {
-            return request(adminProxyStats.path("/connections")).get(String.class);
+            return new BasicAuthenticationData(authParam);
         } catch (Exception e) {
-            throw getApiException(e);
+            throw new PulsarClientException(e);
         }
     }
 
     @Override
-    public String getTopics() throws PulsarAdminException {
-        try {
-            return request(adminProxyStats.path("/topics")).get(String.class);
-        } catch (Exception e) {
-            throw getApiException(e);
-        }
+    public void configure(Map<String, String> authParams) {
+        this.authParam = authParams.get("authParam");
+    }
+
+    @Override
+    public void start() throws PulsarClientException {
+        // noop
     }
 }

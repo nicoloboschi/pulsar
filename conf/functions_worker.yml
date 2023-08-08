@@ -61,6 +61,13 @@ functionsWorkerEnablePackageManagement: false
 # Whether the '/metrics' endpoint requires authentication. Defaults to true
 authenticateMetricsEndpoint: true
 
+# Whether the '/metrics' endpoint requires authorization. Defaults to true
+authorizeMetricsEndpoint: true
+
+# A list of role names (a comma-separated list of strings) able to retrieve metrics
+# and system stats from the web server endpoints.
+metricsRoles:
+
 #################################################################
 # Function metadata management (assignment, scheduling, and etc)
 #################################################################

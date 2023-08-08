@@ -157,7 +157,7 @@ public class PulsarFunctionTlsTest {
         when(dataManager.containsFunction(any(), any(), any())).thenReturn(true);
         when(functionsWorkerService.getFunctionMetaDataManager()).thenReturn(dataManager);
 
-        workerServer = new WorkerServer(functionsWorkerService, authenticationService);
+        workerServer = new WorkerServer(functionsWorkerService, authenticationService, authorizationService);
         workerServer.start();
         Thread.sleep(2000);
         String functionTlsUrl = String.format("https://%s:%s",

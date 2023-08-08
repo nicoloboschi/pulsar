@@ -288,6 +288,11 @@ public class ProxyConfiguration implements PulsarConfiguration {
     private Optional<Integer> webServicePortTls = Optional.empty();
 
     @FieldContext(
+            category = CATEGORY_SERVER,
+            doc = "Control whether the proxy-stats endpoint should be enabled or not.")
+    private boolean exposeProxyStatsEndpoint = true;
+
+    @FieldContext(
             category = CATEGORY_KEYSTORE_TLS,
             doc = "Specify the TLS provider for the web service, available values can be SunJSSE, Conscrypt and etc."
     )
@@ -377,6 +382,13 @@ public class ProxyConfiguration implements PulsarConfiguration {
             + "'authenticationEnabled' must also be set for this to take effect."
     )
     private boolean authenticateMetricsEndpoint = true;
+
+    @FieldContext(
+            category = CATEGORY_AUTHORIZATION,
+            doc = "A list of role names (a comma-separated list of strings) able to retrieve metrics"
+                    + " and system stats from the web server endpoints."
+    )
+    private Set<String> metricsRoles = new TreeSet<>();
 
 
     @FieldContext(

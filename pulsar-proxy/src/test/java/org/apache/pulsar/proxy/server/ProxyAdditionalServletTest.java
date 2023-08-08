@@ -82,8 +82,7 @@ public class ProxyAdditionalServletTest extends MockedPulsarServiceBaseTest {
         // this is for nar package test
 //        addServletNar();
 
-        proxyService = Mockito.spy(new ProxyService(proxyConfig,
-                new AuthenticationService(PulsarConfigurationLoader.convertFrom(proxyConfig))));
+        proxyService = Mockito.spy(new ProxyService(proxyConfig));
         doReturn(new ZKMetadataStore(mockZooKeeper)).when(proxyService).createLocalMetadataStore();
         doReturn(new ZKMetadataStore(mockZooKeeperGlobal)).when(proxyService).createConfigurationMetadataStore();
 
@@ -96,7 +95,7 @@ public class ProxyAdditionalServletTest extends MockedPulsarServiceBaseTest {
 
         mockAdditionalServlet();
 
-        proxyWebServer = new WebServer(proxyConfig, authService);
+        proxyWebServer = new WebServer(proxyService);
         ProxyServiceStarter.addWebServerHandlers(proxyWebServer, proxyConfig, proxyService, null);
         proxyWebServer.start();
     }

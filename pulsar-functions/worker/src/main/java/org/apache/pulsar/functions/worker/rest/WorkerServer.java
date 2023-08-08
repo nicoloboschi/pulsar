@@ -24,9 +24,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import javax.servlet.DispatcherType;
+import javax.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.broker.authentication.AuthenticationDataSource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
+import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.web.AuthenticationFilter;
+import org.apache.pulsar.broker.web.MetricsRoleBasedAuthorizationFilter;
 import org.apache.pulsar.broker.web.JettyRequestLogFactory;
 import org.apache.pulsar.broker.web.RateLimitingFilter;
 import org.apache.pulsar.broker.web.WebExecutorThreadPool;
@@ -57,7 +61,6 @@ public class WorkerServer {
 
     private final WorkerConfig workerConfig;
     private final WorkerService workerService;
-    private final AuthenticationService authenticationService;
     private static final String MATCH_ALL = "/*";
     private final WebExecutorThreadPool webServerExecutor;
     private Server server;
@@ -67,13 +70,14 @@ public class WorkerServer {
 
     private final FilterInitializer filterInitializer;
 
-    public WorkerServer(WorkerService workerService, AuthenticationService authenticationService) {
+    public WorkerServer(WorkerService workerService,
+                        AuthenticationService authenticationService,
+                        AuthorizationService authorizationService) {
         this.workerConfig = workerService.getWorkerConfig();
         this.workerService = workerService;
-        this.authenticationService = authenticationService;
         this.webServerExecutor = new WebExecutorThreadPool(this.workerConfig.getNumHttpServerThreads(), "function-web",
                 this.workerConfig.getHttpServerThreadPoolQueueSize());
-        this.filterInitializer = new FilterInitializer(workerConfig, authenticationService);
+        this.filterInitializer = new FilterInitializer(workerConfig, authenticationService, authorizationService);
         init();
     }
 
@@ -103,10 +107,10 @@ public class WorkerServer {
             new ResourceConfig(Resources.getApiV2Resources()), workerService, filterInitializer));
         handlers.add(newServletContextHandler("/admin/v3",
             new ResourceConfig(Resources.getApiV3Resources()), workerService, filterInitializer));
-        // don't require auth for metrics or config routes
+        final boolean authenticateMetricsEndpoint = workerConfig.isAuthenticateMetricsEndpoint();
         handlers.add(newServletContextHandler("/",
             new ResourceConfig(Resources.getRootResources()), workerService,
-            workerConfig.isAuthenticateMetricsEndpoint(), filterInitializer));
+                authenticateMetricsEndpoint, authenticateMetricsEndpoint, filterInitializer));
 
         RequestLogHandler requestLogHandler = new RequestLogHandler();
         requestLogHandler.setRequestLog(JettyRequestLogFactory.createRequestLogger());
@@ -174,11 +178,15 @@ public class WorkerServer {
         server.setConnectors(connectors.toArray(new ServerConnector[connectors.size()]));
     }
 
+
     private static class FilterInitializer {
         private final List<FilterHolder> filterHolders = new ArrayList<>();
         private final FilterHolder authenticationFilterHolder;
+        private final FilterHolder metricsAuthorizationFilterHolder;
 
-        FilterInitializer(WorkerConfig config, AuthenticationService authenticationService) {
+        FilterInitializer(WorkerConfig config,
+                          AuthenticationService authenticationService,
+                          AuthorizationService authorizationService) {
             if (config.getMaxConcurrentHttpRequests() > 0) {
                 FilterHolder filterHolder = new FilterHolder(QoSFilter.class);
                 filterHolder.setInitParameter("maxRequests", String.valueOf(config.getMaxConcurrentHttpRequests()));
@@ -193,17 +201,31 @@ public class WorkerServer {
             if (config.isAuthenticationEnabled()) {
                 authenticationFilterHolder = new FilterHolder(new AuthenticationFilter(authenticationService));
                 filterHolders.add(authenticationFilterHolder);
+                if (config.isAuthorizationEnabled()) {
+                    metricsAuthorizationFilterHolder = new FilterHolder(
+                            new MetricsRoleBasedAuthorizationFilter(authorizationService)
+                    );
+                    filterHolders.add(metricsAuthorizationFilterHolder);
+                } else {
+                    metricsAuthorizationFilterHolder = null;
+                }
             } else {
+                metricsAuthorizationFilterHolder = null;
                 authenticationFilterHolder = null;
             }
         }
 
-        public void addFilters(ServletContextHandler context, boolean requiresAuthentication) {
+        public void addFilters(ServletContextHandler context,
+                               boolean requiresAuthentication,
+                               boolean requiresMetricsAuthorization) {
             for (FilterHolder filterHolder : filterHolders) {
-                if (requiresAuthentication || filterHolder != authenticationFilterHolder) {
-                    context.addFilter(filterHolder,
-                            MATCH_ALL, EnumSet.allOf(DispatcherType.class));
+                if (filterHolder == authenticationFilterHolder && !requiresAuthentication) {
+                    continue;
                 }
+                if (filterHolder == metricsAuthorizationFilterHolder && !requiresMetricsAuthorization) {
+                    continue;
+                }
+                context.addFilter(filterHolder, MATCH_ALL, EnumSet.allOf(DispatcherType.class));
             }
         }
     }
@@ -212,13 +234,15 @@ public class WorkerServer {
                                                                  ResourceConfig config,
                                                                  WorkerService workerService,
                                                                  FilterInitializer filterInitializer) {
-        return newServletContextHandler(contextPath, config, workerService, true, filterInitializer);
+        return newServletContextHandler(contextPath, config,
+                workerService, true, false, filterInitializer);
     }
 
     static ServletContextHandler newServletContextHandler(String contextPath,
                                                                  ResourceConfig config,
                                                                  WorkerService workerService,
                                                                  boolean requireAuthentication,
+                                                                 boolean requireMetricsAuthorization,
                                                                  FilterInitializer filterInitializer) {
         final ServletContextHandler contextHandler =
                 new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
@@ -232,7 +256,7 @@ public class WorkerServer {
                 new ServletHolder(new ServletContainer(config));
         contextHandler.addServlet(apiServlet, MATCH_ALL);
 
-        filterInitializer.addFilters(contextHandler, requireAuthentication);
+        filterInitializer.addFilters(contextHandler, requireAuthentication, requireMetricsAuthorization);
 
         return contextHandler;
     }

@@ -45,6 +45,7 @@ SET_KEYS = [
     'authenticationProviders',
     'superUserRoles',
     'proxyRoles',
+    'metricsRoles',
     'schemaRegistryCompatibilityCheckers',
     'brokerClientTlsCiphers',
     'brokerClientTlsProtocols',

@@ -253,9 +253,7 @@ public class ProxySaslAuthenticationTest extends ProducerConsumerBase {
 		proxyConfig.setAuthenticationProviders(providers);
 
 		proxyConfig.setForwardAuthorizationCredentials(true);
-		AuthenticationService authenticationService = new AuthenticationService(
-                        PulsarConfigurationLoader.convertFrom(proxyConfig));
-		ProxyService proxyService = new ProxyService(proxyConfig, authenticationService);
+		ProxyService proxyService = new ProxyService(proxyConfig);
 
 		proxyService.start();
 		final String proxyServiceUrl = "pulsar://localhost:" + proxyService.getListenPort().get();

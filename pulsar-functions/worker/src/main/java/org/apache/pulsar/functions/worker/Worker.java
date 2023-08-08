@@ -53,8 +53,10 @@ public class Worker {
 
     protected void start() throws Exception {
         workerService.initAsStandalone(workerConfig);
-        workerService.start(getAuthenticationService(), getAuthorizationService(), errorNotifier);
-        server = new WorkerServer(workerService, getAuthenticationService());
+        final AuthenticationService authenticationService = getAuthenticationService();
+        final AuthorizationService authorizationService = getAuthorizationService();
+        workerService.start(authenticationService, authorizationService, errorNotifier);
+        server = new WorkerServer(workerService, authenticationService, authorizationService);
         server.start();
         log.info("/** Started worker server **/");
 
@@ -72,7 +74,6 @@ public class Worker {
 
         if (this.workerConfig.isAuthorizationEnabled()) {
 
-            log.info("starting configuration cache service");
             try {
                 configMetadataStore = PulsarResources.createConfigMetadataStore(
                         workerConfig.getConfigurationMetadataStoreUrl(),
@@ -83,7 +84,7 @@ public class Worker {
             }
             pulsarResources = new PulsarResources(null, configMetadataStore);
             return new AuthorizationService(getServiceConfiguration(), this.pulsarResources);
-            }
+        }
         return null;
     }
 
