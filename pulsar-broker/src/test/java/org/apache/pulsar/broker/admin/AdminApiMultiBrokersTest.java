@@ -22,13 +22,18 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertTrue;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pulsar.broker.MultiBrokerBaseTest;
@@ -37,15 +42,14 @@ import org.apache.pulsar.broker.loadbalance.LeaderBroker;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.admin.internal.TopicsImpl;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.Message;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.AutoTopicCreationOverride;
+import org.apache.pulsar.common.policies.data.BundlesData;
 import org.apache.pulsar.common.policies.data.RetentionPolicies;
 import org.apache.pulsar.common.policies.data.TenantInfoImpl;
+import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -58,7 +62,7 @@ import org.testng.annotations.Test;
 public class AdminApiMultiBrokersTest extends MultiBrokerBaseTest {
     @Override
     protected int numberOfAdditionalBrokers() {
-        return 3;
+        return 2;
     }
 
     @Override
@@ -90,8 +94,8 @@ public class AdminApiMultiBrokersTest extends MultiBrokerBaseTest {
      * The data provider provide these data [TopicDomain, IsPartition].
      */
     @DataProvider
-    public Object[][] topicTypes(){
-        return new Object[][] {
+    public Object[][] topicTypes() {
+        return new Object[][]{
                 {TopicDomain.persistent, false},
                 {TopicDomain.persistent, true},
                 {TopicDomain.non_persistent, false},
@@ -104,7 +108,7 @@ public class AdminApiMultiBrokersTest extends MultiBrokerBaseTest {
         PulsarAdmin admin0 = getAllAdmins().get(0);
 
         String namespace = RandomStringUtils.randomAlphabetic(5);
-        admin0.namespaces().createNamespace( "public/" + namespace, 3);
+        admin0.namespaces().createNamespace("public/" + namespace, 3);
         admin0.namespaces().setAutoTopicCreation("public/" + namespace,
                 AutoTopicCreationOverride.builder().allowAutoTopicCreation(false).build());
 
@@ -208,4 +212,145 @@ public class AdminApiMultiBrokersTest extends MultiBrokerBaseTest {
             ((TopicsImpl) admin.topics()).createPartitionedTopicAsync(topic, numPartitions, true, null).get();
         }
     }
-}
+
+
+    @Test
+    public void testLB() throws Exception {
+        PulsarAdmin admin0 = getAllAdmins().get(0);
+
+//        String namespace = RandomStringUtils.randomAlphabetic(5);
+//        admin0.namespaces().createNamespace("public/" + namespace, 3);
+        String namespace2 = RandomStringUtils.randomAlphabetic(5);
+        admin0.namespaces().createNamespace("public/" + namespace2, 3);
+
+        TopicName otherTopic = TopicName.get(TopicDomain.persistent.value(), "public", namespace2, "my-other-topic");
+        admin0.topics().createPartitionedTopic(otherTopic.getPartitionedTopicName(), 50);
+        TopicName topic = TopicName.get(TopicDomain.persistent.value(), "public", namespace2, "my-good-topic");
+        admin0.topics().createNonPartitionedTopic(topic.getPartitionedTopicName());
+
+
+        List<String> allTopics = List.of(otherTopic.getPartitionedTopicName(), topic.getPartitionedTopicName());
+
+        CompletableFuture.runAsync(() -> {
+            while (true) {
+                try {
+                    TopicName too = TopicName.get(TopicDomain.persistent.value(), "public", namespace2, "my-other-topic" + UUID.randomUUID());
+                    try {
+                        admin0.topics().createPartitionedTopic(too.getPartitionedTopicName(), 3);
+                        try (Producer<byte[]> producer = pulsarClient.newProducer().topic(too.getPartitionedTopicName())
+                                .producerName("test-prod")
+                                .create();) {
+                            for (int i = 0; i < 100; i++) {
+                                producer.newMessage()
+                                        .value("test".getBytes())
+                                        .send();
+                                Thread.sleep(10);
+                            }
+                            log.info("producer is done with {}", allTopic);
+//                            return;
+                        } catch (Throwable tt) {
+                            log.error(tt.getMessage(), tt);
+                        }
+                    }
+                    } catch (Throwable tt) {
+                        log.error(tt.getMessage(), tt);
+                    }
+
+                }
+            }});
+
+            for (String allTopic : allTopics) {
+//            for (int i = 0; i < 50; i++) {
+                CompletableFuture.runAsync(() -> {
+                    while (true) {
+
+                        try (Producer<byte[]> producer = pulsarClient.newProducer().topic(allTopic)
+                                .producerName("test-prod")
+                                .create();) {
+                            for (int i = 0; i < 100; i++) {
+                                producer.newMessage()
+                                        .value("test".getBytes())
+                                        .send();
+                                Thread.sleep(10);
+                            }
+                            log.info("producer is done with {}", allTopic);
+//                            return;
+                        } catch (Throwable tt) {
+                            log.error(tt.getMessage(), tt);
+                        }
+                    }
+                });
+//            }
+//
+
+//            CompletableFuture.runAsync(() -> {
+//                while (true) {
+//
+//                    try (Consumer<byte[]> producer = pulsarClient.newConsumer().topic(allTopic)
+//                            .subscriptionName("sub1").subscribe();) {
+//                        while (true) {
+//                            Message<byte[]> receive = producer.receive();
+//                        }
+//                    } catch (Throwable tt) {
+//                    }
+//                }
+//            });
+
+            }
+            // To ensure all admin could get a right lookup result.
+            while (true) {
+                Thread.sleep(2000);
+                String owner = getOwmer(topic.getPartitionedTopicName());
+//            String owner1 = getOwmer("my-other-topic-partition-9");
+//            String owner2 = getOwmer("my-other-topic-partition-0");
+                if (owner != null) {
+//                split(topic);
+//                getAllAdmins().get(0).topics().unload(topic.getPartitionedTopicName());
+//                getAllAdmins().get(0).topics().unload(otherTopic.getPartitionedTopicName());
+                    split(otherTopic);
+                } else {
+                    log.info("no owner:");
+                }
+            }
+        }
+
+        @SneakyThrows
+        private String getOwmer (String topicName) throws IOException, InterruptedException {
+            String currentOwner = null;
+            for (PulsarAdmin pulsarAdmin : getAllAdmins()) {
+                String current = pulsarAdmin.getServiceUrl();
+                String metrics = (String) HttpClient.newHttpClient().send(
+                        HttpRequest.newBuilder(URI.create(current + "/metrics/"))
+                                .GET()
+                                .build(), HttpResponse.BodyHandlers.ofString()).body();
+                List<String> lines = metrics.lines().toList();
+                for (String line : lines) {
+                    if (line.startsWith("pulsar_storage_write_latency_count{") && line.contains(topicName)) {
+                        if (currentOwner != null) {
+                            throw new RuntimeException("Found same metrics for both brokers:" + current + " vs " + currentOwner + " for topic " + topicName);
+                        } else {
+                            currentOwner = current;
+                        }
+                    }
+                }
+            }
+            try {
+                log.info("stats: {}", admin.topics().getStats(topicName).getPublishers());
+            } catch (Exception e) {
+
+            }
+            log.info("[" + topicName + "] owner:" + currentOwner);
+            return currentOwner;
+        }
+
+        private void split (TopicName topic) throws PulsarAdminException {
+            BundlesData bundles = admin.namespaces().getBundles(topic.getNamespace());
+            int numBundles = bundles.getNumBundles();
+            var bundleRanges = bundles.getBoundaries().stream().map(Long::decode).sorted().toList();
+            String firstBundle = bundleRanges.get(0) + "_" + bundleRanges.get(1);
+            log.info("gonna split " + firstBundle);
+            admin.namespaces().splitNamespaceBundle(topic.getNamespace(), firstBundle, true, "range_equally_divide");
+        }
+
+
+    }
